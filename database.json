@@ -1,0 +1,69 @@
+{
+  "bill": {
+    "title": "Tiệc sinh nhật Mai",
+    "creator": "Minh Nguyen",
+    "createdAt": "19/05/2026",
+    "members": 5,
+
+    "items": [
+      {
+        "id": "1",
+        "name": "Bánh sinh nhật",
+        "price": 500000
+      },
+
+      {
+        "id": "2",
+        "name": "Buffet",
+        "price": 1500000
+      },
+
+      {
+        "id": "3",
+        "name": "Nước uống",
+        "price": 300000
+      }
+    ],
+
+    "total": 2300000,
+
+    "splitAmount": 460000
+  },
+
+  "members": [
+    {
+      "id": "1",
+      "name": "Minh Nguyen",
+      "code": "USER001",
+      "paid": true
+    },
+
+    {
+      "id": "2",
+      "name": "An Tran",
+      "code": "USER002",
+      "paid": true
+    },
+
+    {
+      "id": "3",
+      "name": "Linh Vu",
+      "code": "USER003",
+      "paid": false
+    },
+
+    {
+      "id": "4",
+      "name": "Huy Le",
+      "code": "USER004",
+      "paid": false
+    }
+  ],
+
+  "bank": {
+    "bankName": "Vietcombank",
+    "accountNumber": "123456789",
+    "owner": "NGUYEN VAN MINH",
+    "transferContent": "TIECMAI_USER003"
+  }
+}
