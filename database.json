@@ -1,0 +1,316 @@
+{
+  "users": [
+    {
+      "id": "u1",
+      "fullName": "Nguyen Van A",
+      "email": "a@gmail.com",
+      "phone": "0901234567",
+      "password": "123456",
+      "avatar": "https://example.com/avatar1.jpg",
+
+      "qrCode": "USER_U1",
+
+      "bio": "Food lover",
+
+      "status": "ACTIVE",
+
+      "createdAt": "2026-05-21T10:00:00",
+      "updatedAt": "2026-05-21T10:00:00"
+    },
+    {
+      "id": "u2",
+      "fullName": "Kim Xuân Hiếu ",
+      "username": "HIEX123",
+      "email": "a@gmail.com",
+      "phone": "0901234567",
+      "password": "123456",
+      "avatar": "https://example.com/avatar1.jpg",
+      "bankName": "Vietcombank",
+      "bankAccount": "1234567890",
+      "qrCode": "USER_U1",
+      "bio": "Food lover",
+      "status": "ACTIVE",
+      "createdAt": "2026-05-21T10:00:00",
+      "updatedAt": "2026-05-21T10:00:00"
+    }
+  ],
+
+  "groups": [
+    {
+      "id": "g1",
+
+      "name": "Da Lat Trip",
+
+      "description": "Trip 3 days 2 nights",
+
+      "avatar": "https://example.com/group1.jpg",
+
+      "createdBy": "u1",
+
+      "currency": "VND",
+
+      "inviteCode": "DALAT2026",
+
+      "totalExpense": 3500000,
+
+      "memberCount": 4,
+
+      "status": "ACTIVE",
+
+      "createdAt": "2026-05-21T10:00:00",
+      "updatedAt": "2026-05-21T10:00:00"
+    }
+  ],
+
+  "groupMembers": [
+    {
+      "id": "gm1",
+
+      "groupId": "g1",
+
+      "userId": "u1",
+
+      "role": "OWNER",
+
+      "nickname": "Leader",
+
+      "joinedAt": "2026-05-21T10:00:00",
+
+      "isActive": true
+    },
+
+    {
+      "id": "gm2",
+
+      "groupId": "g1",
+
+      "userId": "u2",
+
+      "role": "MEMBER",
+
+      "nickname": "Bro",
+
+      "joinedAt": "2026-05-21T10:05:00",
+
+      "isActive": true
+    }
+  ],
+
+  "expenses": [
+    {
+      "id": "e1",
+
+      "groupId": "g1",
+
+      "title": "BBQ Dinner",
+
+      "description": "Dinner at GoGi House",
+
+      "categoryId": "c1",
+
+      "totalAmount": 900000,
+
+      "paidBy": "u1",
+
+      "splitMethod": "EQUAL",
+
+      "receiptImage": "https://example.com/receipt.jpg",
+
+      "location": "GoGi House Ha Noi",
+
+      "expenseDate": "2026-05-21T18:30:00",
+
+      "notes": "Had a great dinner",
+
+      "status": "ACTIVE",
+
+      "createdBy": "u1",
+
+      "createdAt": "2026-05-21T18:30:00",
+
+      "updatedAt": "2026-05-21T18:30:00"
+    }
+  ],
+
+  "expenseParticipants": [
+    {
+      "id": "ep1",
+
+      "expenseId": "e1",
+
+      "userId": "u1",
+
+      "owedAmount": 300000,
+
+      "paidAmount": 900000,
+
+      "remainingAmount": 0,
+
+      "isSettled": true,
+
+      "settledAt": "2026-05-21T19:00:00"
+    },
+
+    {
+      "id": "ep2",
+
+      "expenseId": "e1",
+
+      "userId": "u2",
+
+      "owedAmount": 300000,
+
+      "paidAmount": 0,
+
+      "remainingAmount": 300000,
+
+      "isSettled": false,
+
+      "settledAt": null
+    },
+
+    {
+      "id": "ep3",
+
+      "expenseId": "e1",
+
+      "userId": "u3",
+
+      "owedAmount": 300000,
+
+      "paidAmount": 0,
+
+      "remainingAmount": 300000,
+
+      "isSettled": false,
+
+      "settledAt": null
+    }
+  ],
+
+  "settlements": [
+    {
+      "id": "s1",
+
+      "groupId": "g1",
+
+      "fromUser": "u2",
+
+      "toUser": "u1",
+
+      "amount": 300000,
+
+      "paymentMethod": "BANKING",
+
+      "transactionCode": "MB123456",
+
+      "note": "Paid via MB Bank",
+
+      "proofImage": "https://example.com/payment.jpg",
+
+      "status": "COMPLETED",
+
+      "settledAt": "2026-05-22T09:00:00",
+
+      "createdAt": "2026-05-22T09:00:00"
+    }
+  ],
+
+  "notifications": [
+    {
+      "id": "n1",
+
+      "userId": "u2",
+
+      "title": "New Expense Added",
+
+      "content": "You were added to BBQ Dinner expense",
+
+      "type": "EXPENSE",
+
+      "relatedId": "e1",
+
+      "isRead": false,
+
+      "createdAt": "2026-05-21T19:00:00"
+    },
+
+    {
+      "id": "n2",
+
+      "userId": "u1",
+
+      "title": "Payment Received",
+
+      "content": "Tran Van B paid you 300,000 VND",
+
+      "type": "SETTLEMENT",
+
+      "relatedId": "s1",
+
+      "isRead": false,
+
+      "createdAt": "2026-05-22T09:00:00"
+    }
+  ],
+
+  "categories": [
+    {
+      "id": "c1",
+
+      "name": "Food",
+
+      "icon": "restaurant",
+
+      "color": "#FF6B6B"
+    },
+
+    {
+      "id": "c2",
+
+      "name": "Travel",
+
+      "icon": "airplane",
+
+      "color": "#4ECDC4"
+    },
+
+    {
+      "id": "c3",
+
+      "name": "Shopping",
+
+      "icon": "cart",
+
+      "color": "#FFD166"
+    },
+
+    {
+      "id": "c4",
+
+      "name": "Entertainment",
+
+      "icon": "game-controller",
+
+      "color": "#6C5CE7"
+    }
+  ],
+
+  "friendRequests": [
+    {
+      "id": "fr1",
+
+      "fromUser": "u1",
+
+      "toUser": "u2",
+
+      "message": "Let's split bills together!",
+
+      "status": "PENDING",
+
+      "createdAt": "2026-05-21T10:00:00",
+
+      "updatedAt": "2026-05-21T10:00:00"
+    }
+  ]
+}
