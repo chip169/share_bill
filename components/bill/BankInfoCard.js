@@ -1,41 +1,51 @@
 import React from "react";
 
-import { StyleSheet } from "react-native";
+import { View, Text } from "react-native";
 
-import { Card, Text } from "react-native-paper";
+import tw from "twrnc";
 
 export default function BankInfoCard({ bank }) {
   return (
-    <Card style={styles.card}>
-      <Card.Content>
-        <Text style={styles.title}>Thông tin chuyển khoản</Text>
+    <View
+      style={tw`bg-white rounded-3xl p-5 mb-4 shadow-sm border border-slate-100`}
+    >
+      <Text style={tw`text-xl font-bold text-slate-800 mb-5`}>
+        Thông tin chuyển khoản
+      </Text>
 
-        <Text style={styles.item}>Ngân hàng: {bank.bankName}</Text>
+      <View style={tw`mb-3`}>
+        <Text style={tw`text-slate-400 text-xs mb-1`}>Ngân hàng</Text>
 
-        <Text style={styles.item}>STK: {bank.accountNumber}</Text>
+        <Text style={tw`text-slate-800 font-semibold text-base`}>
+          {bank.bankName}
+        </Text>
+      </View>
 
-        <Text style={styles.item}>Chủ TK: {bank.owner}</Text>
+      <View style={tw`mb-3`}>
+        <Text style={tw`text-slate-400 text-xs mb-1`}>Số tài khoản</Text>
 
-        <Text style={styles.item}>Nội dung: {bank.transferContent}</Text>
-      </Card.Content>
-    </Card>
+        <Text style={tw`text-slate-800 font-semibold text-base`}>
+          {bank.accountNumber}
+        </Text>
+      </View>
+
+      <View style={tw`mb-3`}>
+        <Text style={tw`text-slate-400 text-xs mb-1`}>Chủ tài khoản</Text>
+
+        <Text style={tw`text-slate-800 font-semibold text-base`}>
+          {bank.owner}
+        </Text>
+      </View>
+
+      <View>
+        <Text style={tw`text-slate-400 text-xs mb-1`}>
+          Nội dung chuyển khoản
+        </Text>
+
+        <Text style={tw`text-emerald-500 font-bold text-base`}>
+          {bank.transferContent}
+        </Text>
+      </View>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: 18,
-    marginBottom: 16,
-  },
-
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-
-    marginBottom: 20,
-  },
-
-  item: {
-    marginBottom: 10,
-  },
-});

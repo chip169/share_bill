@@ -1,8 +1,8 @@
 import React from "react";
 
-import { View, StyleSheet } from "react-native";
+import { View, Text } from "react-native";
 
-import { Card, Text } from "react-native-paper";
+import tw from "twrnc";
 
 import MemberStatusItem from "./MemberStatusItem";
 
@@ -12,59 +12,28 @@ export default function MemberStatusList({ members }) {
   const unpaidCount = members.length - paidCount;
 
   return (
-    <Card style={styles.card}>
-      <Card.Content>
-        <View style={styles.header}>
-          <Text style={styles.title}>Trạng thái thanh toán</Text>
+    <View
+      style={tw`bg-white rounded-3xl p-5 mb-4 shadow-sm border border-slate-100`}
+    >
+      <View style={tw`flex-row justify-between items-start mb-5`}>
+        <Text style={tw`text-2xl font-bold text-slate-800`}>
+          Trạng thái thanh toán
+        </Text>
 
-          <View style={styles.statusRow}>
-            <Text style={styles.paid}>{paidCount} đã trả</Text>
+        <View style={tw`flex-col items-end`}>
+          <Text style={tw`text-emerald-500 text-sm font-semibold mb-1`}>
+            {paidCount} đã trả
+          </Text>
 
-            <Text style={styles.unpaid}>{unpaidCount} chưa trả</Text>
-          </View>
+          <Text style={tw`text-red-500 text-sm font-semibold`}>
+            {unpaidCount} chưa trả
+          </Text>
         </View>
+      </View>
 
-        {members.map((member) => (
-          <MemberStatusItem key={member.id} member={member} />
-        ))}
-      </Card.Content>
-    </Card>
+      {members.map((member) => (
+        <MemberStatusItem key={member.id} member={member} />
+      ))}
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: 22,
-
-    marginBottom: 18,
-  },
-
-  header: {
-    flexDirection: "row",
-
-    justifyContent: "space-between",
-
-    alignItems: "center",
-
-    marginBottom: 20,
-  },
-
-  title: {
-    fontSize: 24,
-
-    fontWeight: "bold",
-  },
-
-  statusRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
-
-  paid: {
-    color: "green",
-  },
-
-  unpaid: {
-    color: "red",
-  },
-});

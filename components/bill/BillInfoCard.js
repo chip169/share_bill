@@ -1,54 +1,33 @@
 import React from "react";
 
-import { View, StyleSheet } from "react-native";
+import { View, Text } from "react-native";
 
-import { Card, Text } from "react-native-paper";
+import tw from "twrnc";
 
 export default function BillInfoCard({ bill }) {
   return (
-    <Card style={styles.card}>
-      <Card.Content>
-        <Text style={styles.title}>{bill.title}</Text>
+    <View
+      style={tw`bg-white rounded-3xl p-5 mb-4 shadow-sm border border-slate-100`}
+    >
+      <Text style={tw`text-2xl font-bold text-slate-800 mb-5`}>
+        {bill.title}
+      </Text>
 
-        <InfoRow label="Ngày tạo" value={bill.createdAt} />
+      <InfoRow label="Ngày tạo" value={bill.createdAt} />
 
-        <InfoRow label="Người tạo" value={bill.creator} />
+      <InfoRow label="Người tạo" value={bill.creator} />
 
-        <InfoRow label="Số thành viên" value={`${bill.members} người`} />
-      </Card.Content>
-    </Card>
+      <InfoRow label="Số thành viên" value={`${bill.members} người`} />
+    </View>
   );
 }
 
 function InfoRow({ label, value }) {
   return (
-    <View style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
+    <View style={tw`flex-row justify-between items-center mb-4`}>
+      <Text style={tw`text-slate-400 text-sm`}>{label}</Text>
 
-      <Text>{value}</Text>
+      <Text style={tw`text-slate-800 font-semibold text-base`}>{value}</Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: 18,
-    marginBottom: 16,
-  },
-
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-  },
-
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-
-  label: {
-    color: "#6b7280",
-  },
-});
