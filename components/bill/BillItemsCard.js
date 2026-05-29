@@ -1,71 +1,40 @@
 import React from "react";
 
-import { View, StyleSheet } from "react-native";
+import { View, Text } from "react-native";
 
-import { Card, Text } from "react-native-paper";
+import tw from "twrnc";
 
 export default function BillItemsCard({ bill }) {
   return (
-    <Card style={styles.card}>
-      <Card.Content>
-        <Text style={styles.title}>Chi tiết món</Text>
+    <View
+      style={tw`bg-white rounded-3xl p-5 mb-4 shadow-sm border border-slate-100`}
+    >
+      <Text style={tw`text-2xl font-bold text-slate-800 mb-5`}>
+        Chi tiết món
+      </Text>
 
-        {bill.items.map((item) => (
-          <View key={item.id} style={styles.row}>
-            <Text>{item.name}</Text>
+      {bill.items.map((item) => (
+        <View
+          key={item.id}
+          style={tw`flex-row justify-between items-center mb-4`}
+        >
+          <Text style={tw`text-slate-700 text-base`}>{item.name}</Text>
 
-            <Text>{item.price.toLocaleString()} đ</Text>
-          </View>
-        ))}
-
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Tổng cộng</Text>
-
-          <Text style={styles.totalAmount}>
-            {bill.total.toLocaleString()} đ
+          <Text style={tw`text-slate-800 font-semibold text-base`}>
+            {item.price.toLocaleString("vi-VN")} đ
           </Text>
         </View>
-      </Card.Content>
-    </Card>
+      ))}
+
+      <View
+        style={tw`border-t border-slate-200 mt-3 pt-4 flex-row justify-between items-center`}
+      >
+        <Text style={tw`text-lg font-bold text-slate-800`}>Tổng cộng</Text>
+
+        <Text style={tw`text-emerald-500 text-xl font-bold`}>
+          {bill.total.toLocaleString("vi-VN")} đ
+        </Text>
+      </View>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: 18,
-    marginBottom: 16,
-  },
-
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 20,
-  },
-
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 14,
-  },
-
-  totalRow: {
-    borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
-
-    marginTop: 14,
-    paddingTop: 16,
-
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-
-  totalLabel: {
-    fontWeight: "bold",
-  },
-
-  totalAmount: {
-    color: "green",
-    fontWeight: "bold",
-    fontSize: 20,
-  },
-});
