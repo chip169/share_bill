@@ -43,10 +43,10 @@
       "qrCode": "USER_1781102757143",
       "bio": "",
       "status": "ACTIVE",
-      "otpCode": null,
-      "otpExpiresAt": null,
+      "otpCode": "540381",
+      "otpExpiresAt": "2026-06-11T09:43:41.051Z",
       "createdAt": "2026-06-10T14:45:57.143Z",
-      "updatedAt": "2026-06-10T14:45:57.143Z"
+      "updatedAt": "2026-06-11T09:33:41.051Z"
     },
     {
       "id": "u1781158654123",

@@ -11,6 +11,8 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Vô hiệu hóa tự động đăng nhập khi khởi chạy app
+    /*
     const loadAuth = async () => {
       try {
         const stored = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
@@ -26,6 +28,8 @@ export const AuthProvider = ({ children }) => {
       }
     };
     loadAuth();
+    */
+    setIsLoading(false);
   }, []);
 
   const login = async (id, userData) => {
