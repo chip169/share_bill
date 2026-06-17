@@ -1,71 +1,129 @@
 import React, { useEffect, useState } from "react";
-
-import { View, ScrollView, ActivityIndicator, TouchableOpacity, SafeAreaView} from "react-native";
-import { Button, Text } from "react-native-paper";
+import { View, ScrollView, ActivityIndicator, TouchableOpacity, SafeAreaView, Alert } from "react-native";
+import { Button, Text, Dialog, Portal } from "react-native-paper";
 import tw from "twrnc";
-import { Home, FileText, User } from "lucide-react-native";
+import { Home, FileText, User, ChevronLeft, QrCode } from "lucide-react-native";
 import BillInfoCard from "../components/bill/BillInfoCard";
 import BillItemsCard from "../components/bill/BillItemsCard";
 import PaymentCard from "../components/bill/PaymentCard";
 import MemberStatusList from "../components/bill/MemberStatusList";
 import BankInfoCard from "../components/bill/BankInfoCard";
 
-import { fetchBillDetail } from "../services/api";
+import { fetchBillDetail, settleParticipantPayment } from "../services/api";
 
-export default function BillDetailScreen({ onNavigate }) {
+export default function BillDetailScreen({ onNavigate, routeParams, currentUser }) {
   const [billData, setBillData] = useState(null);
-
   const [loading, setLoading] = useState(true);
+  const [showQrModal, setShowQrModal] = useState(false);
+
+  const billId = routeParams?.billId || "e1";
 
   useEffect(() => {
     loadBillDetail();
-  }, []);
+  }, [billId]);
 
   const loadBillDetail = async () => {
+    setLoading(true);
     try {
-      const data = await fetchBillDetail("e1");
-
+      const data = await fetchBillDetail(billId);
       setBillData(data);
     } catch (error) {
       console.log("Lỗi fetch bill detail:", error);
+      Alert.alert("Lỗi", "Không thể tải chi tiết hóa đơn này!");
+      onNavigate("home");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSettlePayment = async (member) => {
+    Alert.alert(
+      "Xác nhận thanh toán",
+      `Bạn xác nhận thành viên ${member.name} đã thanh toán chuyển khoản đủ tiền?`,
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Xác nhận",
+          onPress: async () => {
+            try {
+              await settleParticipantPayment(member.participantId);
+              Alert.alert("Thành công", "Đã xác nhận thanh toán thành công!");
+              // Refresh page
+              loadBillDetail();
+            } catch (e) {
+              Alert.alert("Lỗi", "Không thể xác nhận thanh toán.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
   if (loading) {
     return (
-      <SafeAreaView style={tw`flex-1 justify-center items-center bg-slate-100`}>
-        <ActivityIndicator size="large" color="#0284c7" />
-
-        <Text style={tw`mt-3 text-base`}>Đang tải hóa đơn...</Text>
+      <SafeAreaView style={tw`flex-1 justify-center items-center bg-slate-50`}>
+        <ActivityIndicator size="large" color="#0ea5e9" />
+        <Text style={tw`mt-3 text-slate-500 text-sm`}>Đang tải hóa đơn...</Text>
       </SafeAreaView>
     );
   }
 
   if (!billData) {
     return (
-      <SafeAreaView style={tw`flex-1 justify-center items-center bg-slate-100`}>
+      <SafeAreaView style={tw`flex-1 justify-center items-center bg-slate-50`}>
         <Text>Không tìm thấy dữ liệu hóa đơn</Text>
       </SafeAreaView>
     );
   }
 
   const { bill, members, bank } = billData;
+  const isOwner = currentUser?.id === bill.creatorId;
+
+  // Tính số tiền dựa trên vai trò của người đang đăng nhập
+  const myMemberRecord = members.find((m) => m.id === currentUser?.id);
+  const myOwedAmount = myMemberRecord ? myMemberRecord.remainingAmount : 0;
+  
+  const remainingToCollect = members
+    .filter((m) => m.id !== bill.creatorId)
+    .reduce((sum, m) => sum + (m.remainingAmount || 0), 0);
+
+  const displayAmount = isOwner ? remainingToCollect : myOwedAmount;
 
   return (
-    <SafeAreaView style={tw`flex-1 bg-slate-100`}>
+    <SafeAreaView style={tw`flex-1 bg-slate-50`}>
+      {/* Top Header */}
+      <View style={tw`flex-row items-center justify-between px-4 py-3 border-b border-slate-100 bg-white`}>
+        <View style={tw`flex-row items-center`}>
+          <TouchableOpacity onPress={() => onNavigate("home")} style={tw`p-1 mr-2`}>
+            <ChevronLeft size={24} color="#334155" />
+          </TouchableOpacity>
+          <Text style={tw`text-lg font-bold text-slate-800`}>Chi tiết hóa đơn</Text>
+        </View>
+        {isOwner && (
+          <TouchableOpacity 
+            onPress={() => onNavigate("createbill", { editBillId: bill.id })}
+            style={tw`bg-sky-50 px-3.5 py-1.5 rounded-full`}
+          >
+            <Text style={tw`text-sky-600 text-xs font-bold`}>✏️ Sửa</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={tw`p-4 pb-40`}
+        contentContainerStyle={tw`p-4 pb-44`}
       >
-        <PaymentCard amount={bill.splitAmount} members={bill.members} />
+        <PaymentCard amount={displayAmount} members={bill.members} isOwner={isOwner} />
 
         <BillInfoCard bill={bill} />
 
         <BillItemsCard bill={bill} />
 
-        <MemberStatusList members={members} />
+        <MemberStatusList 
+          members={members} 
+          showSettleButton={isOwner}
+          onSettle={handleSettlePayment}
+        />
 
         <BankInfoCard bank={bank} />
       </ScrollView>
@@ -74,14 +132,40 @@ export default function BillDetailScreen({ onNavigate }) {
       <View style={tw`absolute bottom-20 left-0 right-0 px-4`}>
         <Button
           mode="contained"
-          icon="qrcode"
-          contentStyle={tw`h-14`}
-          style={tw`rounded-2xl bg-sky-600`}
-          labelStyle={tw`text-base`}
+          icon={() => <QrCode size={18} color="white" style={tw`mr-2`} />}
+          contentStyle={tw`h-13`}
+          style={tw`rounded-2xl bg-sky-500 shadow-md shadow-sky-500/20`}
+          labelStyle={tw`text-base font-bold text-white`}
+          onPress={() => setShowQrModal(true)}
         >
-          Xem mã QR thanh toán
+          Xem mã QR chuyển khoản
         </Button>
       </View>
+
+      {/* QR Code Dialog Modal */}
+      <Portal>
+        <Dialog visible={showQrModal} onDismiss={() => setShowQrModal(false)} style={tw`bg-white rounded-3xl`}>
+          <Dialog.Title style={tw`text-center font-bold text-slate-800`}>Mã QR Chuyển Khoản</Dialog.Title>
+          <Dialog.Content style={tw`items-center py-4`}>
+            {/* Displaying simple VietQR simulation */}
+            <View style={tw`w-52 h-52 bg-slate-100 border border-slate-200 rounded-2xl items-center justify-center mb-4`}>
+              <QrCode size={120} color="#334155" />
+            </View>
+            <Text style={tw`text-slate-800 font-bold text-sm text-center mb-1`}>
+              {bank.bankName} - {bank.accountNumber}
+            </Text>
+            <Text style={tw`text-slate-500 text-xs text-center mb-3`}>
+              Chủ TK: {bank.owner}
+            </Text>
+            <Text style={tw`text-emerald-500 text-xs font-bold text-center`}>
+              Cú pháp: {bank.transferContent}
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions style={tw`justify-center pb-4`}>
+            <Button onPress={() => setShowQrModal(false)} labelStyle={tw`text-sky-500 font-bold`}>Đóng</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
 
       {/* BOTTOM NAV */}
       <View
@@ -92,7 +176,6 @@ export default function BillDetailScreen({ onNavigate }) {
           onPress={() => onNavigate("home")}
         >
           <Home size={22} color="#94a3b8" />
-
           <Text style={tw`text-[10px] text-slate-400 mt-1`}>Trang chủ</Text>
         </TouchableOpacity>
 
@@ -100,11 +183,8 @@ export default function BillDetailScreen({ onNavigate }) {
           style={tw`items-center flex-1 py-1`}
           onPress={() => onNavigate("history")}
         >
-          <FileText size={22} color="#00b894" />
-
-          <Text style={tw`text-[10px] text-[#00b894] font-bold mt-1`}>
-            Lịch sử
-          </Text>
+          <FileText size={22} color="#94a3b8" />
+          <Text style={tw`text-[10px] text-slate-400 mt-1`}>Lịch sử</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -112,7 +192,6 @@ export default function BillDetailScreen({ onNavigate }) {
           onPress={() => onNavigate("profile")}
         >
           <User size={22} color="#94a3b8" />
-
           <Text style={tw`text-[10px] text-slate-400 mt-1`}>Cá nhân</Text>
         </TouchableOpacity>
       </View>
