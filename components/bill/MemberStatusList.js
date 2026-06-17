@@ -1,14 +1,10 @@
 import React from "react";
-
 import { View, Text } from "react-native";
-
 import tw from "twrnc";
-
 import MemberStatusItem from "./MemberStatusItem";
 
-export default function MemberStatusList({ members }) {
+export default function MemberStatusList({ members, showSettleButton, onSettle }) {
   const paidCount = members.filter((member) => member.paid).length;
-
   const unpaidCount = members.length - paidCount;
 
   return (
@@ -16,7 +12,7 @@ export default function MemberStatusList({ members }) {
       style={tw`bg-white rounded-3xl p-5 mb-4 shadow-sm border border-slate-100`}
     >
       <View style={tw`flex-row justify-between items-start mb-5`}>
-        <Text style={tw`text-2xl font-bold text-slate-800`}>
+        <Text style={tw`text-xl font-bold text-slate-800`}>
           Trạng thái thanh toán
         </Text>
 
@@ -32,7 +28,12 @@ export default function MemberStatusList({ members }) {
       </View>
 
       {members.map((member) => (
-        <MemberStatusItem key={member.id} member={member} />
+        <MemberStatusItem 
+          key={member.id} 
+          member={member} 
+          showSettleButton={showSettleButton}
+          onSettle={onSettle}
+        />
       ))}
     </View>
   );
