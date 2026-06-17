@@ -1,62 +1,52 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
-import { Users } from "lucide-react-native";
 import tw from "twrnc";
 
-const ExpenseCard = ({ expense,onPress, }) => {
-  const isCompleted =
-    expense.status === "COMPLETED" || expense.status === "ACTIVE"; // Tùy logic data của bạn
+const CATEGORY_MAP = {
+  c1: { name: "Ăn uống", icon: "🍔" },
+  c2: { name: "Du lịch", icon: "✈️" },
+  c3: { name: "Mua sắm", icon: "🛍️" },
+  c4: { name: "Giải trí", icon: "🎉" },
+};
+
+const ExpenseCard = ({ expense, onPress }) => {
+  const isCompleted = expense.status === "COMPLETED";
+  const cat = CATEGORY_MAP[expense.categoryId] || { name: "Khác", icon: "📝" };
 
   return (
-    <View
-      style={tw`bg-white rounded-2xl p-4 mb-4 shadow-sm border border-slate-100 mx-4`}
+    <TouchableOpacity
+      onPress={onPress}
+      style={tw`bg-white rounded-2xl px-4 py-2.5 mb-2 shadow-sm border border-slate-100 mx-4 flex-row items-center justify-between h-[62px]`}
     >
-      <View style={tw`flex-row justify-between items-start mb-1`}>
-        <Text style={tw`text-slate-800 font-bold text-base flex-1 mr-2`}>
-          {expense.title}
-        </Text>
-        <View
-          style={tw`px-2.5 py-1 rounded-full ${isCompleted ? "bg-emerald-50" : "bg-orange-50"}`}
-        >
-          <Text
-            style={tw`text-xs font-semibold ${isCompleted ? "text-emerald-500" : "text-orange-500"}`}
-          >
-            {isCompleted ? "Hoàn thành" : "Một phần"}
+      {/* Left side: Category icon in circle */}
+      <View style={tw`flex-row items-center flex-1 mr-3`}>
+        <View style={tw`w-10 h-10 rounded-full bg-slate-50 border border-slate-100 items-center justify-center mr-3`}>
+          <Text style={tw`text-lg`}>{cat.icon}</Text>
+        </View>
+
+        {/* Center: Title & Date */}
+        <View style={tw`flex-1`}>
+          <Text style={tw`text-slate-800 font-bold text-sm`} numberOfLines={1}>
+            {expense.title}
+          </Text>
+          <Text style={tw`text-slate-400 text-[10px] mt-0.5`}>
+            {expense.date} • {expense.memberCount} người
           </Text>
         </View>
       </View>
-      <Text style={tw`text-slate-400 text-xs mb-3`}>{expense.date}</Text>
-      <View style={tw`border-b border-slate-100 mb-3`} />
-      <View style={tw`flex-row justify-between mb-3`}>
-        <View>
-          <Text style={tw`text-slate-400 text-xs mb-1`}>Tổng hóa đơn</Text>
-          <Text style={tw`text-slate-800 font-bold text-sm`}>
-            {expense.totalAmount.toLocaleString("vi-VN")} đ
-          </Text>
-        </View>
-        <View style={tw`items-end`}>
-          <Text style={tw`text-slate-400 text-xs mb-1`}>Bạn đã trả</Text>
-          <Text style={tw`text-emerald-500 font-bold text-sm`}>
-            {expense.paidAmount.toLocaleString("vi-VN")} đ
+
+      {/* Right side: Amount & Status */}
+      <View style={tw`items-end`}>
+        <Text style={tw`text-slate-800 font-bold text-sm`}>
+          {expense.totalAmount.toLocaleString("vi-VN")} đ
+        </Text>
+        <View style={tw`mt-0.5 px-2 py-0.5 rounded-full ${isCompleted ? "bg-emerald-50" : "bg-orange-50"}`}>
+          <Text style={tw`text-[9px] font-bold ${isCompleted ? "text-emerald-600" : "text-orange-600"}`}>
+            {isCompleted ? "Đã xong" : "Chờ thu/trả"}
           </Text>
         </View>
       </View>
-      <View style={tw`flex-row items-center gap-1.5`}>
-        <Users size={14} color="#64748b" />
-        <Text style={tw`text-slate-500 text-xs`}>
-          {expense.memberCount} người
-        </Text>
-      </View>
-      <TouchableOpacity
-        style={tw`bg-[#00b894] px-4 py-2 rounded-xl`}
-        onPress= {onPress}
-      >
-        
-        <Text style={tw`text-white text-xs font-bold`}>
-          Xem chi tiết
-        </Text>
-      </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 };
 
