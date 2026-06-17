@@ -3,7 +3,15 @@ import { View, TouchableOpacity } from "react-native";
 import { Text, Avatar } from "react-native-paper";
 import tw from "twrnc";
 
-export default function HomeHeader({ user, totalSpend, totalInvoices, activeTab, setActiveTab,}) {
+export default function HomeHeader({ user, totalToPay = 0, totalToCollect = 0, activeTab, setActiveTab }) {
+  const formatAmount = (amt) => {
+    if (!amt) return "0 đ";
+    if (amt >= 1000000) {
+      return `${(amt / 1000000).toFixed(1).replace('.0', '')}M đ`;
+    }
+    return `${amt.toLocaleString('vi-VN')} đ`;
+  };
+
   return (
     <View style={tw`bg-sky-500 rounded-b-[40px] pb-6 pt-6`}>
       <View style={tw`flex-row mt-8 justify-between items-center px-6`}>
@@ -12,34 +20,51 @@ export default function HomeHeader({ user, totalSpend, totalInvoices, activeTab,
             Xin chào, {user.fullName}! 👋
           </Text>
 
-          <Text style={tw`text-white text-base mt-1`}>
-            Mã người dùng: {user.username}
+          <Text style={tw`text-white/80 text-sm mt-1`}>
+            ID: {user.username}
           </Text>
         </View>
 
-        <Avatar.Text size={56} label={user.fullName[0]} style={tw`bg-white`} />
+        <Avatar.Text size={56} label={user.fullName[0]} style={tw`bg-white`} labelStyle={tw`text-sky-500 font-bold`} />
       </View>
 
+      {/* Financial Summary Cards */}
       <View style={tw`flex-row px-6 mt-6`}>
-        <View
-          style={tw`flex-1 bg-white/10 rounded-3xl p-5 mr-3 border border-white/20`}
+        {/* To Collect (Được nhận) */}
+        <TouchableOpacity
+          onPress={() => setActiveTab(activeTab === "NEED_TO_COLLECT" ? "ALL" : "NEED_TO_COLLECT")}
+          style={tw`flex-1 rounded-3xl p-5 mr-3 border ${
+            activeTab === "NEED_TO_COLLECT" 
+              ? "bg-white/35 border-emerald-400" 
+              : "bg-white/15 border-emerald-400/30"
+          }`}
         >
-          <Text style={tw`text-white`}>Tổng phải trả</Text>
-
-          <Text style={tw`text-white text-3xl font-bold mt-6`}>
-            {(totalSpend / 1000000).toFixed(1)}M đ
+          <View style={tw`flex-row items-center gap-1.5`}>
+            <View style={tw`w-2 h-2 rounded-full bg-emerald-400`} />
+            <Text style={tw`text-white/80 text-xs font-semibold`}>Cần thu</Text>
+          </View>
+          <Text style={tw`text-white text-2xl font-black mt-4`}>
+            {formatAmount(totalToCollect)}
           </Text>
-        </View>
+        </TouchableOpacity>
 
-        <View
-          style={tw`flex-1 bg-white/10 rounded-3xl p-5 border border-white/20`}
+        {/* To Pay (Cần trả) */}
+        <TouchableOpacity
+          onPress={() => setActiveTab(activeTab === "NEED_TO_PAY" ? "ALL" : "NEED_TO_PAY")}
+          style={tw`flex-1 rounded-3xl p-5 border ${
+            activeTab === "NEED_TO_PAY" 
+              ? "bg-white/35 border-rose-400" 
+              : "bg-white/15 border-rose-400/30"
+          }`}
         >
-          <Text style={tw`text-white`}>Số hóa đơn</Text>
-
-          <Text style={tw`text-white text-3xl font-bold mt-6`}>
-            {totalInvoices}
+          <View style={tw`flex-row items-center gap-1.5`}>
+            <View style={tw`w-2 h-2 rounded-full bg-rose-400`} />
+            <Text style={tw`text-white/80 text-xs font-semibold`}>Cần trả</Text>
+          </View>
+          <Text style={tw`text-white text-2xl font-black mt-4`}>
+            {formatAmount(totalToPay)}
           </Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       <View style={tw`bg-white mx-6 mt-6 rounded-2xl flex-row p-1`}>
