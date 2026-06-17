@@ -2,18 +2,15 @@
   "users": [
     {
       "id": "u1",
-      "fullName": "Nguyen Van A",
+      "fullName": "Trần Khánh Ly",
+      "username": "NGUYENA",
       "email": "a@gmail.com",
       "phone": "0901234567",
       "password": "123456",
       "avatar": "https://example.com/avatar1.jpg",
-
       "qrCode": "USER_U1",
-
       "bio": "Food lover",
-
       "status": "ACTIVE",
-
       "createdAt": "2026-05-21T10:00:00",
       "updatedAt": "2026-05-21T10:00:00"
     },
@@ -22,294 +19,629 @@
       "fullName": "Kim Xuân Hiếu ",
       "username": "HIEX123",
       "email": "a@gmail.com",
-      "phone": "0901234567",
+      "phone": "0987654321",
       "password": "123456",
       "avatar": "https://example.com/avatar1.jpg",
       "bankName": "Vietcombank",
       "bankAccount": "1234567890",
-      "qrCode": "USER_U1",
+      "qrCode": "USER_U2",
       "bio": "Food lover",
       "status": "ACTIVE",
       "createdAt": "2026-05-21T10:00:00",
       "updatedAt": "2026-05-21T10:00:00"
-    }
-  ],
-
-  "groups": [
+    },
     {
-      "id": "g1",
-
-      "name": "Da Lat Trip",
-
-      "description": "Trip 3 days 2 nights",
-
-      "avatar": "https://example.com/group1.jpg",
-
-      "createdBy": "u1",
-
-      "currency": "VND",
-
-      "inviteCode": "DALAT2026",
-
-      "totalExpense": 3500000,
-
-      "memberCount": 4,
-
+      "id": "u4",
+      "username": "USR3866",
+      "fullName": "Trần Quang Võ",
+      "email": "u_bscd02q8i@sharebill.com",
+      "phone": "0398768699",
+      "password": "hieu1901",
+      "avatar": "https://example.com/avatar_default.jpg",
+      "bankName": "MBbank",
+      "bankAccount": "2556915888",
+      "qrCode": "USER_USR3866",
+      "bio": "Active Share Bill member",
       "status": "ACTIVE",
-
+      "createdAt": "2026-06-17T09:57:52.343Z",
+      "updatedAt": "2026-06-17T09:57:52.343Z"
+    },
+    {
+      "id": "u3",
+      "fullName": "Nguyen Van C",
+      "username": "NGUYENC",
+      "email": "c@gmail.com",
+      "phone": "0912345678",
+      "password": "123456",
+      "avatar": "https://example.com/avatar3.jpg",
+      "bankName": "Agribank",
+      "bankAccount": "9876543210",
+      "qrCode": "USER_U3",
+      "bio": "Active Share Bill member",
+      "status": "ACTIVE",
       "createdAt": "2026-05-21T10:00:00",
       "updatedAt": "2026-05-21T10:00:00"
     }
   ],
-
+  "groups": [
+    {
+      "id": "g1",
+      "name": "Da Lat Trip",
+      "description": "Trip 3 days 2 nights",
+      "avatar": "https://example.com/group1.jpg",
+      "createdBy": "u1",
+      "currency": "VND",
+      "inviteCode": "DALAT2026",
+      "totalExpense": 3500000,
+      "memberCount": 4,
+      "status": "ACTIVE",
+      "createdAt": "2026-05-21T10:00:00",
+      "updatedAt": "2026-05-21T10:00:00"
+    }
+  ],
   "groupMembers": [
     {
       "id": "gm1",
-
       "groupId": "g1",
-
       "userId": "u1",
-
       "role": "OWNER",
-
       "nickname": "Leader",
-
       "joinedAt": "2026-05-21T10:00:00",
-
       "isActive": true
     },
-
     {
       "id": "gm2",
-
       "groupId": "g1",
-
       "userId": "u2",
-
       "role": "MEMBER",
-
       "nickname": "Bro",
-
       "joinedAt": "2026-05-21T10:05:00",
-
       "isActive": true
     }
   ],
-
   "expenses": [
     {
       "id": "e1",
-
       "groupId": "g1",
-
       "title": "BBQ Dinner",
-
       "description": "Dinner at GoGi House",
-
       "categoryId": "c1",
-
       "totalAmount": 900000,
-
       "paidBy": "u1",
-
       "splitMethod": "EQUAL",
-
       "receiptImage": "https://example.com/receipt.jpg",
-
       "location": "GoGi House Ha Noi",
-
       "expenseDate": "2026-05-21T18:30:00",
-
       "notes": "Had a great dinner",
-
       "status": "ACTIVE",
-
+      "billCode": "BILL-GOGI",
       "createdBy": "u1",
-
       "createdAt": "2026-05-21T18:30:00",
-
       "updatedAt": "2026-05-21T18:30:00"
+    },
+    {
+      "id": "e_wjtkj62oc",
+      "groupId": "g1",
+      "title": "hdkdk",
+      "totalAmount": 91999,
+      "paidBy": "u2",
+      "splitMethod": "ITEMIZED",
+      "expenseDate": "2026-06-17T13:48",
+      "items": [
+        {
+          "id": "item_1",
+          "name": "Vdjd",
+          "price": 90000,
+          "sharedWith": [
+            "u2"
+          ]
+        },
+        {
+          "id": "item_2",
+          "name": "Bdkdksjs",
+          "price": 1999,
+          "sharedWith": [
+            "u2"
+          ]
+        }
+      ],
+      "status": "ACTIVE",
+      "createdBy": "u2",
+      "createdAt": "2026-06-17T13:49:31.470Z",
+      "updatedAt": "2026-06-17T13:49:31.470Z"
+    },
+    {
+      "id": "e_n0ea11vdd",
+      "groupId": "g1",
+      "title": "ăn cơm",
+      "totalAmount": 829456,
+      "paidBy": "u4",
+      "splitMethod": "ITEMIZED",
+      "expenseDate": "2026-06-17T21:19",
+      "items": [
+        {
+          "id": "item_1",
+          "name": "Cơm",
+          "price": 100000,
+          "sharedWith": [
+            "u2",
+            "u1",
+            "u3",
+            "u4"
+          ]
+        },
+        {
+          "id": "item_2",
+          "name": "Gà",
+          "price": 100000,
+          "sharedWith": [
+            "u2",
+            "u1",
+            "u4"
+          ]
+        },
+        {
+          "id": "item_3",
+          "name": "Thịt lợn",
+          "price": 123456,
+          "sharedWith": [
+            "u2",
+            "u3",
+            "u1"
+          ]
+        },
+        {
+          "id": "item_4",
+          "name": "Sườn xào chua ngọt",
+          "price": 456000,
+          "sharedWith": [
+            "u2",
+            "u3",
+            "u4"
+          ]
+        },
+        {
+          "id": "item_5",
+          "name": "Rau",
+          "price": 50000,
+          "sharedWith": [
+            "u2",
+            "u1",
+            "u3",
+            "u4"
+          ]
+        }
+      ],
+      "status": "ACTIVE",
+      "createdBy": "u4",
+      "createdAt": "2026-06-17T14:24:43.483Z",
+      "updatedAt": "2026-06-17T14:24:43.483Z"
+    },
+    {
+      "id": "e_eefzcne1g",
+      "billCode": "BILL-6L2U",
+      "groupId": "g1",
+      "title": "Ăn bún",
+      "totalAmount": 123456,
+      "paidBy": "u2",
+      "splitMethod": "ITEMIZED",
+      "expenseDate": "2026-06-17T14:36",
+      "items": [
+        {
+          "id": "item_1",
+          "name": "Vip",
+          "price": 123456,
+          "sharedWith": [
+            "u2"
+          ]
+        }
+      ],
+      "status": "ACTIVE",
+      "createdBy": "u2",
+      "createdAt": "2026-06-17T14:37:22.648Z",
+      "updatedAt": "2026-06-17T14:37:22.649Z"
+    },
+    {
+      "id": "e_q968nxat6",
+      "billCode": "BILL-JRC0",
+      "groupId": "g1",
+      "title": "Lẩu hadilao",
+      "totalAmount": 100000000,
+      "paidBy": "u1",
+      "splitMethod": "ITEMIZED",
+      "expenseDate": "2026-06-17T17:17",
+      "items": [
+        {
+          "id": "item_1",
+          "name": "Bi a",
+          "price": 100000000,
+          "sharedWith": [
+            "u2",
+            "u1"
+          ]
+        }
+      ],
+      "status": "ACTIVE",
+      "createdBy": "u1",
+      "createdAt": "2026-06-17T17:20:31.299Z",
+      "updatedAt": "2026-06-17T17:20:31.299Z"
+    },
+    {
+      "id": "e_98ttbntrw",
+      "billCode": "BILL-Z8GI",
+      "groupId": "g1",
+      "title": "du lịch Haoai",
+      "totalAmount": 91110686,
+      "paidBy": "u1",
+      "splitMethod": "ITEMIZED",
+      "expenseDate": "2026-06-17T17:32",
+      "items": [
+        {
+          "id": "item_1",
+          "name": "Tiền xe",
+          "price": 2222222,
+          "sharedWith": [
+            "u2",
+            "u1",
+            "u4",
+            "u3"
+          ]
+        },
+        {
+          "id": "item_2",
+          "name": "Tiền ăn",
+          "price": 88888464,
+          "sharedWith": [
+            "u2",
+            "u1",
+            "u3",
+            "u4"
+          ]
+        }
+      ],
+      "status": "ACTIVE",
+      "createdBy": "u1",
+      "createdAt": "2026-06-17T17:33:48.294Z",
+      "updatedAt": "2026-06-17T17:33:48.294Z",
+      "categoryId": "c1"
+    },
+    {
+      "id": "e_dlrbbmtxo",
+      "billCode": "BILL-LLCU",
+      "groupId": "g1",
+      "title": "tiền bút bi",
+      "totalAmount": 12359,
+      "paidBy": "u1",
+      "splitMethod": "ITEMIZED",
+      "expenseDate": "2026-06-17T17:43",
+      "items": [
+        {
+          "id": "item_1",
+          "name": "Vip",
+          "price": 12359,
+          "sharedWith": [
+            "u2",
+            "u1"
+          ]
+        }
+      ],
+      "status": "ACTIVE",
+      "createdBy": "u2",
+      "createdAt": "2026-06-17T17:43:29.884Z",
+      "updatedAt": "2026-06-17T17:43:29.884Z",
+      "categoryId": "c3"
+    },
+    {
+      "id": "e_wzjb8ynor",
+      "billCode": "BILL-X4OR",
+      "groupId": "g1",
+      "title": "Vở",
+      "totalAmount": 10000,
+      "paidBy": "u2",
+      "splitMethod": "ITEMIZED",
+      "expenseDate": "2026-06-17T17:44",
+      "items": [
+        {
+          "id": "item_1",
+          "name": "Vở",
+          "price": 10000,
+          "sharedWith": [
+            "u2",
+            "u3"
+          ]
+        }
+      ],
+      "status": "ACTIVE",
+      "createdBy": "u2",
+      "createdAt": "2026-06-17T17:45:10.925Z",
+      "updatedAt": "2026-06-17T17:45:10.925Z",
+      "categoryId": "c1"
     }
   ],
-
   "expenseParticipants": [
     {
       "id": "ep1",
-
       "expenseId": "e1",
-
       "userId": "u1",
-
       "owedAmount": 300000,
-
       "paidAmount": 900000,
-
       "remainingAmount": 0,
-
       "isSettled": true,
-
       "settledAt": "2026-05-21T19:00:00"
     },
-
     {
       "id": "ep2",
-
       "expenseId": "e1",
-
       "userId": "u2",
-
       "owedAmount": 300000,
-
       "paidAmount": 0,
-
       "remainingAmount": 300000,
-
       "isSettled": false,
-
       "settledAt": null
     },
-
     {
       "id": "ep3",
-
       "expenseId": "e1",
-
       "userId": "u3",
-
       "owedAmount": 300000,
-
       "paidAmount": 0,
-
       "remainingAmount": 300000,
-
       "isSettled": false,
-
       "settledAt": null
+    },
+    {
+      "id": "ep_zda6sxecx",
+      "expenseId": "e_wjtkj62oc",
+      "userId": "u2",
+      "owedAmount": 91999,
+      "paidAmount": 91999,
+      "remainingAmount": 0,
+      "isSettled": true,
+      "settledAt": "2026-06-17T13:49:31.545Z"
+    },
+    {
+      "id": "ep_th4ocmz8u",
+      "expenseId": "e_n0ea11vdd",
+      "userId": "u2",
+      "owedAmount": 263985,
+      "paidAmount": 0,
+      "remainingAmount": 263985,
+      "isSettled": false,
+      "settledAt": null
+    },
+    {
+      "id": "ep_mackngoh5",
+      "expenseId": "e_n0ea11vdd",
+      "userId": "u1",
+      "owedAmount": 111985,
+      "paidAmount": 0,
+      "remainingAmount": 111985,
+      "isSettled": false,
+      "settledAt": null
+    },
+    {
+      "id": "ep_4gsuwqrz7",
+      "expenseId": "e_n0ea11vdd",
+      "userId": "u3",
+      "owedAmount": 230652,
+      "paidAmount": 0,
+      "remainingAmount": 230652,
+      "isSettled": false,
+      "settledAt": null
+    },
+    {
+      "id": "ep_ian6wsbpv",
+      "expenseId": "e_n0ea11vdd",
+      "userId": "u4",
+      "owedAmount": 222833,
+      "paidAmount": 829456,
+      "remainingAmount": 0,
+      "isSettled": true,
+      "settledAt": "2026-06-17T14:24:43.611Z"
+    },
+    {
+      "id": "ep_pq6q13f5z",
+      "expenseId": "e_eefzcne1g",
+      "userId": "u2",
+      "owedAmount": 123456,
+      "paidAmount": 123456,
+      "remainingAmount": 0,
+      "isSettled": true,
+      "settledAt": "2026-06-17T14:37:22.707Z"
+    },
+    {
+      "id": "ep_i4txl8qjy",
+      "expenseId": "e_eefzcne1g",
+      "userId": "u1",
+      "owedAmount": 0,
+      "paidAmount": 0,
+      "remainingAmount": 0,
+      "isSettled": false,
+      "settledAt": null
+    },
+    {
+      "id": "ep_noe1rjvzx",
+      "expenseId": "e_eefzcne1g",
+      "userId": "u3",
+      "owedAmount": 0,
+      "paidAmount": 0,
+      "remainingAmount": 0,
+      "isSettled": false,
+      "settledAt": null
+    },
+    {
+      "id": "ep_icw4kp4c4",
+      "expenseId": "e_q968nxat6",
+      "userId": "u2",
+      "owedAmount": 50000000,
+      "paidAmount": 0,
+      "remainingAmount": 50000000,
+      "isSettled": false,
+      "settledAt": null
+    },
+    {
+      "id": "ep_jmeo38bwo",
+      "expenseId": "e_q968nxat6",
+      "userId": "u1",
+      "owedAmount": 50000000,
+      "paidAmount": 100000000,
+      "remainingAmount": 0,
+      "isSettled": true,
+      "settledAt": "2026-06-17T17:20:31.371Z"
+    },
+    {
+      "id": "ep_hgwwztoie",
+      "expenseId": "e_98ttbntrw",
+      "userId": "u2",
+      "owedAmount": 22777672,
+      "paidAmount": 0,
+      "remainingAmount": 22777672,
+      "isSettled": false,
+      "settledAt": null
+    },
+    {
+      "id": "ep_52ikop8v4",
+      "expenseId": "e_98ttbntrw",
+      "userId": "u1",
+      "owedAmount": 22777672,
+      "paidAmount": 91110686,
+      "remainingAmount": 0,
+      "isSettled": true,
+      "settledAt": "2026-06-17T17:33:48.492Z"
+    },
+    {
+      "id": "ep_t2kisadr1",
+      "expenseId": "e_98ttbntrw",
+      "userId": "u3",
+      "owedAmount": 22777672,
+      "paidAmount": 0,
+      "remainingAmount": 22777672,
+      "isSettled": false,
+      "settledAt": null
+    },
+    {
+      "id": "ep_hioflgthu",
+      "expenseId": "e_98ttbntrw",
+      "userId": "u4",
+      "owedAmount": 22777672,
+      "paidAmount": 0,
+      "remainingAmount": 22777672,
+      "isSettled": false,
+      "settledAt": null
+    },
+    {
+      "id": "ep_cpklexur0",
+      "expenseId": "e_dlrbbmtxo",
+      "userId": "u2",
+      "owedAmount": 6180,
+      "paidAmount": 0,
+      "remainingAmount": 6180,
+      "isSettled": false,
+      "settledAt": null
+    },
+    {
+      "id": "ep_fh6d2buiw",
+      "expenseId": "e_dlrbbmtxo",
+      "userId": "u1",
+      "owedAmount": 6180,
+      "paidAmount": 12359,
+      "remainingAmount": 0,
+      "isSettled": true,
+      "settledAt": "2026-06-17T17:43:29.942Z"
+    },
+    {
+      "id": "ep_v2r5wpp3j",
+      "expenseId": "e_wzjb8ynor",
+      "userId": "u2",
+      "owedAmount": 5000,
+      "paidAmount": 10000,
+      "remainingAmount": 0,
+      "isSettled": true,
+      "settledAt": "2026-06-17T17:45:10.960Z"
+    },
+    {
+      "id": "ep_eyo9epx1m",
+      "expenseId": "e_wzjb8ynor",
+      "userId": "u3",
+      "owedAmount": 5000,
+      "paidAmount": 0,
+      "remainingAmount": 0,
+      "isSettled": true,
+      "settledAt": "2026-06-17T17:45:43.735Z"
     }
   ],
-
   "settlements": [
     {
       "id": "s1",
-
       "groupId": "g1",
-
       "fromUser": "u2",
-
       "toUser": "u1",
-
       "amount": 300000,
-
       "paymentMethod": "BANKING",
-
       "transactionCode": "MB123456",
-
       "note": "Paid via MB Bank",
-
       "proofImage": "https://example.com/payment.jpg",
-
       "status": "COMPLETED",
-
       "settledAt": "2026-05-22T09:00:00",
-
       "createdAt": "2026-05-22T09:00:00"
     }
   ],
-
   "notifications": [
     {
       "id": "n1",
-
       "userId": "u2",
-
       "title": "New Expense Added",
-
       "content": "You were added to BBQ Dinner expense",
-
       "type": "EXPENSE",
-
       "relatedId": "e1",
-
-      "isRead": false,
-
+      "isRead": true,
       "createdAt": "2026-05-21T19:00:00"
     },
-
     {
       "id": "n2",
-
       "userId": "u1",
-
       "title": "Payment Received",
-
       "content": "Tran Van B paid you 300,000 VND",
-
       "type": "SETTLEMENT",
-
       "relatedId": "s1",
-
       "isRead": false,
-
       "createdAt": "2026-05-22T09:00:00"
     }
   ],
-
   "categories": [
     {
       "id": "c1",
-
       "name": "Food",
-
       "icon": "restaurant",
-
       "color": "#FF6B6B"
     },
-
     {
       "id": "c2",
-
       "name": "Travel",
-
       "icon": "airplane",
-
       "color": "#4ECDC4"
     },
-
     {
       "id": "c3",
-
       "name": "Shopping",
-
       "icon": "cart",
-
       "color": "#FFD166"
     },
-
     {
       "id": "c4",
-
       "name": "Entertainment",
-
       "icon": "game-controller",
-
       "color": "#6C5CE7"
     }
   ],
-
   "friendRequests": [
     {
       "id": "fr1",
-
       "fromUser": "u1",
-
       "toUser": "u2",
-
       "message": "Let's split bills together!",
-
       "status": "PENDING",
-
       "createdAt": "2026-05-21T10:00:00",
-
       "updatedAt": "2026-05-21T10:00:00"
     }
   ]
