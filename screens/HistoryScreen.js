@@ -68,6 +68,7 @@ const HistoryScreen = ({ onNavigate, currentUser }) => {
               <ExpenseCard
                 key={expense.id}
                 expense={expense}
+                currentUserId={currentUser?.id}
                 onPress={() => onNavigate("billdetail", { billId: expense.id })}
               />
             ))
