@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Provider as PaperProvider } from "react-native-paper";
 
@@ -8,13 +8,19 @@ import ProfileScreen from "./screens/ProfileScreen";
 import BillDetailScreen from "./screens/BillDetailScreen";
 import LoginScreen from "./screens/LoginScreen";
 import RegisterScreen from "./screens/RegisterScreen";
+import ForgotPasswordScreen from "./screens/ForgotPasswordScreen";
 import CreateBillScreen from "./screens/CreateBillScreen";
 import MiniGamesScreen from "./screens/MiniGamesScreen";
+import { registerForPushNotificationsAsync } from "./services/notifications";
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState("login");
   const [currentUser, setCurrentUser] = useState(null);
   const [routeParams, setRouteParams] = useState({});
+
+  useEffect(() => {
+    registerForPushNotificationsAsync();
+  }, []);
 
   const navigate = (screen, params = {}) => {
     setCurrentScreen(screen);
@@ -40,6 +46,12 @@ export default function App() {
   } else if (currentScreen === "register") {
     screenComponent = (
       <RegisterScreen 
+        onNavigate={navigate} 
+      />
+    );
+  } else if (currentScreen === "forgotpassword") {
+    screenComponent = (
+      <ForgotPasswordScreen 
         onNavigate={navigate} 
       />
     );
