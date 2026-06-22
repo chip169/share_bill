@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { View, SafeAreaView, ScrollView, TouchableOpacity, Alert, StyleSheet } from "react-native";
-import { TextInput, Button, Text, Card, Checkbox, IconButton } from "react-native-paper";
-import { ChevronLeft, Plus, Trash2, Search, UserPlus, Calendar, ChevronDown, ChevronUp } from "lucide-react-native";
+import { TextInput, Button, Text, Card, Checkbox, IconButton, Portal, Dialog, ActivityIndicator } from "react-native-paper";
+import { ChevronLeft, Plus, Trash2, Search, UserPlus, Calendar, ChevronDown, ChevronUp, Camera } from "lucide-react-native";
 import tw from "twrnc";
-import { searchUserByUsername, createExpense, updateExpense, fetchBillDetail } from "../services/api";
+import { searchUserByUsername, createExpense, updateExpense, fetchBillDetail, scanReceiptOCR, parseOcrTextToItems } from "../services/api";
 import { Audio } from "expo-av";
+import { sendLocalNotification } from "../services/notifications";
+import * as ImagePicker from "expo-image-picker";
 
 const CATEGORIES = [
   { id: "c1", name: "Ăn uống", icon: "🍔" },
@@ -18,7 +20,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
   const [title, setTitle] = useState(routeParams?.title || "");
   const [expenseDate, setExpenseDate] = useState(routeParams?.expenseDate || "");
   const [categoryId, setCategoryId] = useState(routeParams?.categoryId || "c1");
-  
+
   // Members list, prefilled with current logged-in user
   const [members, setMembers] = useState(routeParams?.members || []);
   const [searchQuery, setSearchQuery] = useState("");
@@ -31,10 +33,12 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
 
   const [paidById, setPaidById] = useState(routeParams?.paidById || routeParams?.prevBillState?.paidById || currentUser?.id);
   const [expandedItemId, setExpandedItemId] = useState("1");
+  const [scanning, setScanning] = useState(false);
+  const [scanStatus, setScanStatus] = useState("");
 
   // Load bill data in edit mode
   useEffect(() => {
-    if (isEditMode) {
+    if (isEditMode && !routeParams?.winnerId) {
       const loadBillData = async () => {
         try {
           const { bill, members: billMembers } = await fetchBillDetail(routeParams.editBillId);
@@ -44,7 +48,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
           }
           setCategoryId(bill.categoryId || "c1");
           setPaidById(bill.creatorId);
-          
+
           // Map members
           const mappedMembers = billMembers.map(m => ({
             id: m.id,
@@ -126,10 +130,9 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
 
       Alert.alert(
         "Đã phân chia hóa đơn từ game 🎲",
-        `Hóa đơn đã được gán hoàn toàn cho: ${
-          winnersList.length === 1 
-            ? routeParams.winnerName 
-            : `${winnersList.length} thành viên trúng cược`
+        `Hóa đơn đã được gán hoàn toàn cho: ${winnersList.length === 1
+          ? routeParams.winnerName
+          : `${winnersList.length} thành viên trúng cược`
         }!`,
         [{ text: "Đồng ý" }]
       );
@@ -213,6 +216,117 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
     );
   };
 
+  // Trình chọn ảnh và quét hóa đơn OCR
+  const handleScanBill = () => {
+    Alert.alert(
+      "Quét hóa đơn Bằng AI 📸",
+      "Chọn nguồn hình ảnh hóa đơn để phân tích món ăn & giá:",
+      [
+        { text: "Hủy", style: "cancel" },
+        { text: "Chụp ảnh từ Camera", onPress: () => processImagePicker("camera") },
+        { text: "Chọn từ thư viện ảnh", onPress: () => processImagePicker("library") }
+      ]
+    );
+  };
+
+  const processImagePicker = async (type) => {
+    try {
+      let permissionResult;
+      if (type === "camera") {
+        permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      } else {
+        permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      }
+
+      if (!permissionResult.granted) {
+        Alert.alert("Quyền truy cập", "Bạn cần cấp quyền truy cập để sử dụng tính năng này!");
+        return;
+      }
+
+      let result;
+      const pickerOptions = {
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+        base64: true, // Yêu cầu chuỗi base64 để gửi qua API OCR
+      };
+
+      if (type === "camera") {
+        result = await ImagePicker.launchCameraAsync(pickerOptions);
+      } else {
+        result = await ImagePicker.launchImageLibraryAsync(pickerOptions);
+      }
+
+      if (result.canceled) return;
+
+      const asset = result.assets[0];
+      if (!asset.base64) {
+        Alert.alert("Lỗi", "Không thể lấy dữ liệu hình ảnh dạng base64.");
+        return;
+      }
+
+      setScanning(true);
+      setScanStatus("Đang gửi ảnh lên máy chủ OCR...");
+
+      // Gọi API bóc tách text
+      const parsedText = await scanReceiptOCR(asset.base64);
+
+      setScanStatus("AI đang phân tích tên món & giá tiền...");
+      const extractedItems = parseOcrTextToItems(parsedText);
+
+      if (extractedItems.length === 0) {
+        Alert.alert(
+          "Kết quả quét ⚠️", 
+          "Không nhận diện được tên món ăn / giá tiền cụ thể nào từ ảnh. Vui lòng chụp ảnh cận cảnh hóa đơn rõ nét hơn!"
+        );
+      } else {
+        // Tag toàn bộ thành viên hiện tại vào các món mới
+        const allMemberIds = members.map((m) => m.id);
+        const mappedExtractedItems = extractedItems.map(item => ({
+          ...item,
+          sharedWith: allMemberIds
+        }));
+
+        Alert.alert(
+          "Quét hóa đơn thành công 🎉",
+          `Nhận diện được ${extractedItems.length} món ăn.\n\nBạn muốn làm gì với danh sách này?`,
+          [
+            {
+              text: "Thêm tiếp vào hóa đơn",
+              onPress: () => {
+                setItems(prev => {
+                  const startId = prev.length + 1;
+                  const adjusted = mappedExtractedItems.map((item, idx) => ({
+                    ...item,
+                    id: (startId + idx).toString()
+                  }));
+                  // Lọc bỏ món mặc định nếu nó trống
+                  const filteredPrev = prev.filter(item => item.name.trim() !== "" || item.price !== "");
+                  return [...filteredPrev, ...adjusted];
+                });
+              }
+            },
+            {
+              text: "Ghi đè mới hoàn toàn",
+              onPress: () => {
+                setItems(mappedExtractedItems);
+              }
+            }
+          ]
+        );
+      }
+    } catch (error) {
+      console.error("Lỗi khi quét bill:", error);
+      Alert.alert(
+        "Lỗi quét hóa đơn ❌",
+        error.message || "Không thể kết nối tới dịch vụ nhận diện hóa đơn. Vui lòng kiểm tra lại mạng!"
+      );
+    } finally {
+      setScanning(false);
+      setScanStatus("");
+    }
+  };
+
   // Live calculation: calculate share per member
   const calculateShares = () => {
     const memberShares = {};
@@ -225,7 +339,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
     items.forEach((item) => {
       const price = parseFloat(item.price) || 0;
       totalAmount += price;
-      
+
       const count = item.sharedWith.length;
       if (count > 0) {
         const share = price / count;
@@ -248,7 +362,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
       Alert.alert("Thiếu thông tin", "Vui lòng nhập tên hóa đơn!");
       return;
     }
-    
+
     // Validate items
     const invalidItem = items.find((item) => !item.name.trim() || !item.price || parseFloat(item.price) <= 0);
     if (invalidItem) {
@@ -291,8 +405,13 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
           categoryId: categoryId,
         });
 
+        sendLocalNotification(
+          "Cập nhật hóa đơn thành công! 📝",
+          `Hóa đơn "${title.trim()}" đã được cập nhật thành công.`
+        );
+
         Alert.alert("Thành công", "Đã cập nhật hóa đơn thành công!", [
-          { text: "Tuyệt vời", onPress: () => onNavigate("billdetail", { expenseId: routeParams.editBillId }) }
+          { text: "Tuyệt vời", onPress: () => onNavigate("billdetail", { billId: routeParams.editBillId }) }
         ]);
       } else {
         // Call API
@@ -306,6 +425,11 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
           participants: participants,
           categoryId: categoryId,
         });
+
+        sendLocalNotification(
+          "Tạo hóa đơn thành công! 💵",
+          `Hóa đơn "${title.trim()}" trị giá ${totalAmount.toLocaleString("vi-VN")} đ đã được tạo.`
+        );
 
         Alert.alert("Thành công", "Đã tạo và phân chia hóa đơn thành công!", [
           { text: "Tuyệt vời", onPress: () => onNavigate("home") }
@@ -322,12 +446,12 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
       {/* Top Header */}
       <View style={tw`flex-row items-center justify-between px-4 py-3 border-b border-slate-100 bg-white`}>
         <View style={tw`flex-row items-center`}>
-          <TouchableOpacity onPress={() => onNavigate(isEditMode ? "billdetail" : "home", isEditMode ? { expenseId: routeParams.editBillId } : undefined)} style={tw`p-1 mr-2`}>
+          <TouchableOpacity onPress={() => onNavigate(isEditMode ? "billdetail" : "home", isEditMode ? { billId: routeParams.editBillId } : undefined)} style={tw`p-1 mr-2`}>
             <ChevronLeft size={24} color="#334155" />
           </TouchableOpacity>
           <Text style={tw`text-lg font-bold text-slate-800`}>{isEditMode ? "Chỉnh sửa hóa đơn" : "Tạo hóa đơn chia tiền"}</Text>
         </View>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={async () => {
             try {
               const { sound } = await Audio.Sound.createAsync(
@@ -348,18 +472,18 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
               "Đặt cược có thể dẫn đến việc gánh toàn bộ hóa đơn! Bạn hãy suy nghĩ thật kỹ trước khi chơi minigame.",
               [
                 { text: "Để tôi xem lại", style: "cancel" },
-                { 
-                  text: "Tôi hiểu rồi, chơi luôn!", 
+                {
+                  text: "Tôi hiểu rồi, chơi luôn!",
                   onPress: () => {
-                    onNavigate("minigames", { 
-                      billMembers: members, 
-                      prevBillState: { title, expenseDate, categoryId, members, items, paidById, editBillId: routeParams?.editBillId } 
+                    onNavigate("minigames", {
+                      billMembers: members,
+                      prevBillState: { title, expenseDate, categoryId, members, items, paidById, editBillId: routeParams?.editBillId }
                     });
-                  } 
+                  }
                 }
               ]
             );
-          }} 
+          }}
           style={tw`bg-orange-100 px-3 py-1.5 rounded-full`}
         >
           <Text style={tw`text-orange-600 text-xs font-bold`}>🎲 Chọn người trả</Text>
@@ -389,9 +513,8 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                 <TouchableOpacity
                   key={cat.id}
                   onPress={() => setCategoryId(cat.id)}
-                  style={tw`flex-1 flex-row items-center justify-center border rounded-xl py-2 px-1 ${
-                    isSelected ? "bg-sky-500 border-sky-500" : "bg-white border-slate-200"
-                  }`}
+                  style={tw`flex-1 flex-row items-center justify-center border rounded-xl py-2 px-1 ${isSelected ? "bg-sky-500 border-sky-500" : "bg-white border-slate-200"
+                    }`}
                 >
                   <Text style={tw`text-sm mr-1`}>{cat.icon}</Text>
                   <Text style={tw`text-[10px] font-bold ${isSelected ? "text-white" : "text-slate-600"}`}>
@@ -464,11 +587,10 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                   <TouchableOpacity
                     key={m.id}
                     onPress={() => setPaidById(m.id)}
-                    style={tw`flex-row items-center border rounded-full px-3 py-1.5 ${
-                      isPayer 
-                        ? "bg-sky-500 border-sky-500" 
+                    style={tw`flex-row items-center border rounded-full px-3 py-1.5 ${isPayer
+                        ? "bg-sky-500 border-sky-500"
                         : "bg-white border-slate-200"
-                    }`}
+                      }`}
                   >
                     <View style={tw`w-4 h-4 rounded-full items-center justify-center mr-1.5 ${isPayer ? "bg-white" : "bg-sky-500"}`}>
                       <Text style={tw`text-[9px] font-bold ${isPayer ? "text-sky-500" : "text-white"}`}>{m.fullName[0]}</Text>
@@ -487,10 +609,16 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
         <View style={tw`mx-4`}>
           <View style={tw`flex-row justify-between items-center mb-3`}>
             <Text style={tw`text-base font-bold text-slate-800`}>Chi tiết món ăn & Tag người dùng</Text>
-            <TouchableOpacity onPress={handleAddItem} style={tw`flex-row items-center gap-1 bg-sky-50 px-3 py-1.5 rounded-full`}>
-              <Plus size={14} color="#0284c7" />
-              <Text style={tw`text-sky-700 text-xs font-bold`}>Thêm món</Text>
-            </TouchableOpacity>
+            <View style={tw`flex-row gap-2`}>
+              <TouchableOpacity onPress={handleScanBill} style={tw`flex-row items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-full`}>
+                <Camera size={14} color="#059669" />
+                <Text style={tw`text-emerald-700 text-xs font-bold`}>Quét bill</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleAddItem} style={tw`flex-row items-center gap-1 bg-sky-50 px-3 py-1.5 rounded-full`}>
+                <Plus size={14} color="#0284c7" />
+                <Text style={tw`text-sky-700 text-xs font-bold`}>Thêm món</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {items.map((item, index) => {
@@ -517,8 +645,8 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                   </View>
                   <View style={tw`flex-row items-center gap-2`}>
                     {items.length > 1 && (
-                      <TouchableOpacity 
-                        onPress={() => handleRemoveItem(item.id)} 
+                      <TouchableOpacity
+                        onPress={() => handleRemoveItem(item.id)}
                         style={tw`p-1 mr-1`}
                       >
                         <Trash2 size={16} color="#ef4444" />
@@ -582,11 +710,10 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                       <TouchableOpacity
                         key={m.id}
                         onPress={() => handleToggleShare(item.id, m.id)}
-                        style={tw`flex-row items-center border rounded-full px-3 py-1 ${
-                          isChecked 
-                            ? "bg-emerald-50 border-emerald-300" 
+                        style={tw`flex-row items-center border rounded-full px-3 py-1 ${isChecked
+                            ? "bg-emerald-50 border-emerald-300"
                             : "bg-slate-50 border-slate-200"
-                        }`}
+                          }`}
                       >
                         <Checkbox.Android
                           status={isChecked ? "checked" : "unchecked"}
@@ -637,6 +764,22 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
           Lưu hóa đơn & Phân chia nợ
         </Button>
       </View>
+
+      {/* Modal báo trạng thái quét hóa đơn */}
+      <Portal>
+        <Dialog visible={scanning} dismissable={false} style={tw`bg-white rounded-3xl`}>
+          <Dialog.Title style={tw`text-center font-bold text-slate-800`}>Quét hóa đơn bằng AI</Dialog.Title>
+          <Dialog.Content style={tw`items-center py-6`}>
+            <ActivityIndicator size="large" color="#10b981" style={tw`mb-4`} />
+            <Text style={tw`text-slate-600 text-sm font-semibold text-center`}>
+              {scanStatus}
+            </Text>
+            <Text style={tw`text-slate-400 text-xs text-center mt-2`}>
+              Vui lòng giữ kết nối internet ổn định...
+            </Text>
+          </Dialog.Content>
+        </Dialog>
+      </Portal>
     </SafeAreaView>
   );
 }

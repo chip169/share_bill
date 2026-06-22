@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import { SafeAreaView, ScrollView, ActivityIndicator, View, TouchableOpacity, Alert } from "react-native";
 import tw from "twrnc";
 import HomeHeader from "../components/home/HomeHeader";
-import ExpenseHomeCard from "../components/home/ExpenseHomeCard";
+import ExpenseCard from "../components/history/ExpenseCard";
 import { fetchUserProfile, fetchHistoryExpenses, joinExpenseByCode } from "../services/api";
+import { sendLocalNotification } from "../services/notifications";
 
 import { Text, FAB, Card, TextInput, Button } from "react-native-paper";
 import { Home, FileText, User, Plus } from "lucide-react-native";
@@ -26,6 +27,13 @@ export default function HomeScreen({ onNavigate, currentUser }) {
     try {
       const expense = await joinExpenseByCode(currentUser.id, joinCode);
       setJoinCode("");
+      
+      // Gửi thông báo tham gia thành công
+      sendLocalNotification(
+        "Tham gia hóa đơn thành công! 📑",
+        `Bạn đã tham gia thành công hóa đơn "${expense.title}"!`
+      );
+
       Alert.alert(
         "Thành công 🎉",
         `Bạn đã tham gia thành công hóa đơn "${expense.title}"!`,
@@ -178,7 +186,7 @@ export default function HomeScreen({ onNavigate, currentUser }) {
             </View>
           ) : (
             filteredExpenses.slice(0, 3).map((expense) => (
-              <ExpenseHomeCard
+              <ExpenseCard
                 key={expense.id}
                 expense={expense}
                 onPress={() => onNavigate("billdetail", { billId: expense.id })}

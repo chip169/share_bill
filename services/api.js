@@ -1,13 +1,13 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://192.168.110.212:9999";
+const API_BASE_URL = "http://192.168.137.1:9999";
 
 // Helper to format date
 const formatDate = (isoString) => {
   if (!isoString) {
     const now = new Date();
-    const day = String(now.getDate()).padStart(2, '0');
-    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, "0");
+    const month = String(now.getMonth() + 1).padStart(2, "0");
     const year = now.getFullYear();
     return `${day}/${month}/${year}`;
   }
@@ -16,8 +16,8 @@ const formatDate = (isoString) => {
     return datePart.split("-").reverse().join("/");
   } catch (e) {
     const now = new Date();
-    const day = String(now.getDate()).padStart(2, '0');
-    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, "0");
+    const month = String(now.getMonth() + 1).padStart(2, "0");
     const year = now.getFullYear();
     return `${day}/${month}/${year}`;
   }
@@ -44,29 +44,29 @@ export const fetchUserProfile = async (userId = "u2") => {
 
     // 1. Tính số tiền cần trả (Bạn nợ người khác)
     const totalToPay = participations.reduce(
-      (sum, ep) => sum + (ep.isSettled ? 0 : (ep.remainingAmount || 0)),
-      0
+      (sum, ep) => sum + (ep.isSettled ? 0 : ep.remainingAmount || 0),
+      0,
     );
 
     // 2. Tính số tiền cần thu (Người khác nợ bạn)
     const myPaidExpensesRes = await axios.get(
-      `${API_BASE_URL}/expenses?paidBy=${userId}`
+      `${API_BASE_URL}/expenses?paidBy=${userId}`,
     );
     const myPaidExpenses = myPaidExpensesRes.data;
-    
+
     let totalToCollect = 0;
     const collectPromises = myPaidExpenses.map(async (exp) => {
       const expPartsRes = await axios.get(
-        `${API_BASE_URL}/expenseParticipants?expenseId=${exp.id}`
+        `${API_BASE_URL}/expenseParticipants?expenseId=${exp.id}`,
       );
       const expParts = expPartsRes.data;
       const sumOthers = expParts.reduce(
-        (sum, p) => sum + (p.userId === userId ? 0 : (p.remainingAmount || 0)),
-        0
+        (sum, p) => sum + (p.userId === userId ? 0 : p.remainingAmount || 0),
+        0,
       );
       totalToCollect += sumOthers;
     });
-    
+
     await Promise.all(collectPromises);
 
     return {
@@ -91,12 +91,12 @@ export const searchUserByUsername = async (username) => {
     const res = await axios.get(`${API_BASE_URL}/users`);
     const users = res.data;
     const cleanUsername = username.trim().toLowerCase();
-    
+
     // Tìm theo username hoặc id (không phân biệt hoa thường)
     const found = users.find(
       (u) =>
         (u.username && u.username.toLowerCase() === cleanUsername) ||
-        u.id.toLowerCase() === cleanUsername
+        u.id.toLowerCase() === cleanUsername,
     );
     return found || null;
   } catch (error) {
@@ -108,7 +108,8 @@ export const searchUserByUsername = async (username) => {
 // 3. Login API
 export const loginUser = async (phone, password) => {
   try {
-    const res = await axios.get(`${API_BASE_URL}/users?phone=${phone}`);
+    const cleanPhone = (phone || "").trim();
+    const res = await axios.get(`${API_BASE_URL}/users?phone=${cleanPhone}`);
     const users = res.data;
     if (users.length === 0) {
       throw new Error("Số điện thoại không tồn tại!");
@@ -119,7 +120,9 @@ export const loginUser = async (phone, password) => {
     }
     return user;
   } catch (error) {
-    console.error("Lỗi loginUser:", error);
+    if (error.message !== "Số điện thoại không tồn tại!" && error.message !== "Mật khẩu không chính xác!") {
+      console.error("Lỗi hệ thống loginUser:", error);
+    }
     throw error;
   }
 };
@@ -127,16 +130,23 @@ export const loginUser = async (phone, password) => {
 // 4. Register API with validation helper inside screen
 export const registerUser = async (userData) => {
   try {
+    const cleanPhone = (userData.phone || "").trim();
+    // Kiểm tra số điện thoại đã tồn tại chưa
+    const checkPhoneRes = await axios.get(`${API_BASE_URL}/users?phone=${cleanPhone}`);
+    if (checkPhoneRes.data && checkPhoneRes.data.length > 0) {
+      throw new Error("Số điện thoại này đã được đăng ký!");
+    }
+
     // Generate unique ID and username
     const id = "u_" + Math.random().toString(36).slice(2, 11);
     const username = "USR" + Math.floor(1000 + Math.random() * 9000);
-    
+
     const newUserData = {
       id,
       username,
       fullName: userData.fullName,
       email: userData.email || `${id}@sharebill.com`,
-      phone: userData.phone,
+      phone: cleanPhone,
       password: userData.password,
       avatar: userData.avatar || "https://example.com/avatar_default.jpg",
       bankName: userData.bankName,
@@ -145,7 +155,7 @@ export const registerUser = async (userData) => {
       bio: "Active Share Bill member",
       status: "ACTIVE",
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     const res = await axios.post(`${API_BASE_URL}/users`, newUserData);
@@ -166,23 +176,27 @@ export const fetchHistoryExpenses = async (userId = "u2") => {
 
     const historyPromises = myParticipations.map(async (part) => {
       const expenseRes = await axios.get(
-        `${API_BASE_URL}/expenses/${part.expenseId}`
+        `${API_BASE_URL}/expenses/${part.expenseId}`,
       );
       const expense = expenseRes.data;
 
       const allPartsRes = await axios.get(
-        `${API_BASE_URL}/expenseParticipants?expenseId=${expense.id}`
+        `${API_BASE_URL}/expenseParticipants?expenseId=${expense.id}`,
       );
       const allParts = allPartsRes.data;
       const memberCount = allParts.length;
 
       const isPayer = expense.paidBy === userId;
-      const userPaidAmount = isPayer ? expense.totalAmount : ((part.owedAmount || 0) - (part.remainingAmount || 0));
-      
+      const userPaidAmount = isPayer
+        ? expense.totalAmount
+        : (part.owedAmount || 0) - (part.remainingAmount || 0);
+
       let statusUI = "PARTIAL";
       if (isPayer) {
         // Payer: COMPLETE nếu tất cả các người khác đã trả xong (remainingAmount === 0)
-        const othersSettled = allParts.every((p) => p.remainingAmount === 0 || p.isSettled);
+        const othersSettled = allParts.every(
+          (p) => p.remainingAmount === 0 || p.isSettled,
+        );
         statusUI = othersSettled ? "COMPLETED" : "PARTIAL";
       } else {
         statusUI = part.remainingAmount === 0 ? "COMPLETED" : "PARTIAL";
@@ -192,6 +206,7 @@ export const fetchHistoryExpenses = async (userId = "u2") => {
         id: expense.id,
         title: expense.title,
         date: formatDate(expense.expenseDate),
+        rawDate: expense.expenseDate || expense.createdAt,
         totalAmount: expense.totalAmount,
         paidAmount: userPaidAmount,
         memberCount: memberCount,
@@ -201,7 +216,8 @@ export const fetchHistoryExpenses = async (userId = "u2") => {
       };
     });
 
-    return await Promise.all(historyPromises);
+    const results = await Promise.all(historyPromises);
+    return results.sort((a, b) => new Date(b.rawDate) - new Date(a.rawDate));
   } catch (error) {
     console.error("Lỗi fetchHistoryExpenses:", error);
     throw error;
@@ -217,7 +233,7 @@ export const fetchBillDetail = async (expenseId) => {
 
     // Fetch participants list for this bill
     const participantsRes = await axios.get(
-      `${API_BASE_URL}/expenseParticipants?expenseId=${expenseId}`
+      `${API_BASE_URL}/expenseParticipants?expenseId=${expenseId}`,
     );
     const participants = participantsRes.data;
 
@@ -251,12 +267,22 @@ export const fetchBillDetail = async (expenseId) => {
     const members = await Promise.all(membersPromises);
 
     // Fetch payer info for bank details
-    let payer = { id: expense.paidBy, fullName: "Người thanh toán", bankName: "Vietcombank", bankAccount: "1234567890" };
+    let payer = {
+      id: expense.paidBy,
+      fullName: "Người thanh toán",
+      bankName: "Vietcombank",
+      bankAccount: "1234567890",
+    };
     try {
-      const payerRes = await axios.get(`${API_BASE_URL}/users/${expense.paidBy}`);
+      const payerRes = await axios.get(
+        `${API_BASE_URL}/users/${expense.paidBy}`,
+      );
       payer = payerRes.data;
     } catch (err) {
-      console.warn(`Payer ${expense.paidBy} not found in database:`, err.message);
+      console.warn(
+        `Payer ${expense.paidBy} not found in database:`,
+        err.message,
+      );
     }
 
     // Fallback/mock items if expense doesn't have an items array
@@ -282,7 +308,8 @@ export const fetchBillDetail = async (expenseId) => {
       creator: payer.fullName,
       creatorId: payer.id,
       members: members.length,
-      splitAmount: members[0]?.owedAmount || (expense.totalAmount / (members.length || 1)),
+      splitAmount:
+        members[0]?.owedAmount || expense.totalAmount / (members.length || 1),
       total: expense.totalAmount,
       items: billItems,
       categoryId: expense.categoryId || null,
@@ -306,8 +333,9 @@ export const fetchBillDetail = async (expenseId) => {
 export const createExpense = async (expenseData) => {
   try {
     const expenseId = "e_" + Math.random().toString(36).slice(2, 11);
-    
-    const billCode = "BILL-" + Math.random().toString(36).substring(2, 6).toUpperCase();
+
+    const billCode =
+      "BILL-" + Math.random().toString(36).substring(2, 6).toUpperCase();
 
     // Save Expense info
     const expenseObj = {
@@ -326,7 +354,7 @@ export const createExpense = async (expenseData) => {
       updatedAt: new Date().toISOString(),
       categoryId: expenseData.categoryId || null,
     };
-    
+
     await axios.post(`${API_BASE_URL}/expenses`, expenseObj);
 
     // Save Participants info
@@ -336,10 +364,12 @@ export const createExpense = async (expenseData) => {
         expenseId: expenseId,
         userId: p.userId,
         owedAmount: p.owedAmount,
-        paidAmount: p.userId === expenseData.paidBy ? expenseData.totalAmount : 0,
+        paidAmount:
+          p.userId === expenseData.paidBy ? expenseData.totalAmount : 0,
         remainingAmount: p.userId === expenseData.paidBy ? 0 : p.owedAmount,
         isSettled: p.userId === expenseData.paidBy, // Payer is settled automatically
-        settledAt: p.userId === expenseData.paidBy ? new Date().toISOString() : null,
+        settledAt:
+          p.userId === expenseData.paidBy ? new Date().toISOString() : null,
       };
       return axios.post(`${API_BASE_URL}/expenseParticipants`, partObj);
     });
@@ -356,7 +386,9 @@ export const createExpense = async (expenseData) => {
 export const updateExpense = async (expenseId, expenseData) => {
   try {
     // 1. Get current expense
-    const oldExpenseRes = await axios.get(`${API_BASE_URL}/expenses/${expenseId}`);
+    const oldExpenseRes = await axios.get(
+      `${API_BASE_URL}/expenses/${expenseId}`,
+    );
     const oldExpense = oldExpenseRes.data;
 
     // 2. Update the expense details
@@ -374,11 +406,11 @@ export const updateExpense = async (expenseId, expenseData) => {
 
     // 3. Delete existing participants for this expense
     const oldPartsRes = await axios.get(
-      `${API_BASE_URL}/expenseParticipants?expenseId=${expenseId}`
+      `${API_BASE_URL}/expenseParticipants?expenseId=${expenseId}`,
     );
     const oldParts = oldPartsRes.data;
     const deletePromises = oldParts.map((p) =>
-      axios.delete(`${API_BASE_URL}/expenseParticipants/${p.id}`)
+      axios.delete(`${API_BASE_URL}/expenseParticipants/${p.id}`),
     );
     await Promise.all(deletePromises);
 
@@ -389,10 +421,12 @@ export const updateExpense = async (expenseId, expenseData) => {
         expenseId: expenseId,
         userId: p.userId,
         owedAmount: p.owedAmount,
-        paidAmount: p.userId === expenseData.paidBy ? expenseData.totalAmount : 0,
+        paidAmount:
+          p.userId === expenseData.paidBy ? expenseData.totalAmount : 0,
         remainingAmount: p.userId === expenseData.paidBy ? 0 : p.owedAmount,
         isSettled: p.userId === expenseData.paidBy,
-        settledAt: p.userId === expenseData.paidBy ? new Date().toISOString() : null,
+        settledAt:
+          p.userId === expenseData.paidBy ? new Date().toISOString() : null,
       };
       return axios.post(`${API_BASE_URL}/expenseParticipants`, partObj);
     });
@@ -414,7 +448,7 @@ export const settleParticipantPayment = async (participantId) => {
         remainingAmount: 0,
         isSettled: true,
         settledAt: new Date().toISOString(),
-      }
+      },
     );
     return res.data;
   } catch (error) {
@@ -437,8 +471,12 @@ export const updateUserProfile = async (userId, data) => {
 // 10. Fetch User Notifications API
 export const fetchNotifications = async (userId) => {
   try {
-    const res = await axios.get(`${API_BASE_URL}/notifications?userId=${userId}`);
-    return res.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const res = await axios.get(
+      `${API_BASE_URL}/notifications?userId=${userId}`,
+    );
+    return res.data.sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+    );
   } catch (error) {
     console.error("Lỗi fetchNotifications:", error);
     throw error;
@@ -448,7 +486,10 @@ export const fetchNotifications = async (userId) => {
 // 11. Mark Notification as Read API
 export const markNotificationRead = async (notificationId) => {
   try {
-    const res = await axios.patch(`${API_BASE_URL}/notifications/${notificationId}`, { isRead: true });
+    const res = await axios.patch(
+      `${API_BASE_URL}/notifications/${notificationId}`,
+      { isRead: true },
+    );
     return res.data;
   } catch (error) {
     console.error("Lỗi markNotificationRead:", error);
@@ -460,7 +501,9 @@ export const markNotificationRead = async (notificationId) => {
 export const joinExpenseByCode = async (userId, billCode) => {
   try {
     const cleanCode = billCode.trim().toUpperCase();
-    const expensesRes = await axios.get(`${API_BASE_URL}/expenses?billCode=${cleanCode}`);
+    const expensesRes = await axios.get(
+      `${API_BASE_URL}/expenses?billCode=${cleanCode}`,
+    );
     const expenses = expensesRes.data;
     if (expenses.length === 0) {
       throw new Error("Không tìm thấy hóa đơn nào với mã này!");
@@ -469,7 +512,7 @@ export const joinExpenseByCode = async (userId, billCode) => {
 
     // Check if user is already in expenseParticipants
     const participantsRes = await axios.get(
-      `${API_BASE_URL}/expenseParticipants?expenseId=${expense.id}&userId=${userId}`
+      `${API_BASE_URL}/expenseParticipants?expenseId=${expense.id}&userId=${userId}`,
     );
     const existingParticipants = participantsRes.data;
     if (existingParticipants.length > 0) {
@@ -507,4 +550,156 @@ export const joinExpenseByCode = async (userId, billCode) => {
     console.error("Lỗi joinExpenseByCode:", error);
     throw error;
   }
+};
+
+// 13. Fetch bank list from VietQR
+export const fetchBankList = async () => {
+  try {
+    const res = await axios.get("https://api.vietqr.io/v2/banks");
+    if (res.data && res.data.code === "00") {
+      return res.data.data;
+    }
+    return [];
+  } catch (error) {
+    console.error("Lỗi fetchBankList:", error);
+    return [];
+  }
+};
+
+// 14. Delete Expense and associated participants
+export const deleteExpense = async (expenseId) => {
+  try {
+    // 1. Delete the expense
+    await axios.delete(`${API_BASE_URL}/expenses/${expenseId}`);
+
+    // 2. Delete participants associated with this expense
+    const partsRes = await axios.get(
+      `${API_BASE_URL}/expenseParticipants?expenseId=${expenseId}`
+    );
+    const parts = partsRes.data;
+    const deletePromises = parts.map(p =>
+      axios.delete(`${API_BASE_URL}/expenseParticipants/${p.id}`)
+    );
+    await Promise.all(deletePromises);
+  } catch (error) {
+    console.error("Lỗi deleteExpense:", error);
+    throw error;
+  }
+};
+
+// 15. Reset user password by phone number
+export const resetUserPassword = async (phone, newPassword) => {
+  try {
+    const cleanPhone = (phone || "").trim();
+    const res = await axios.get(`${API_BASE_URL}/users?phone=${cleanPhone}`);
+    const users = res.data;
+    if (users.length === 0) {
+      throw new Error("Số điện thoại này chưa được đăng ký!");
+    }
+    const user = users[0];
+    const updateRes = await axios.patch(`${API_BASE_URL}/users/${user.id}`, {
+      password: newPassword,
+      updatedAt: new Date().toISOString()
+    });
+    return updateRes.data;
+  } catch (error) {
+    console.error("Lỗi resetUserPassword:", error);
+    throw error;
+  }
+};
+
+// 16. Scan Receipt OCR using OCR.space free API
+export const scanReceiptOCR = async (base64Data) => {
+  try {
+    const formData = new FormData();
+    formData.append("apikey", "helloworld");
+    formData.append("language", "vie");
+    formData.append("isOverlayRequired", "false");
+    formData.append("detectOrientation", "true");
+    formData.append("scale", "true");
+    formData.append("base64Image", `data:image/jpeg;base64,${base64Data}`);
+
+    const response = await axios.post("https://api.ocr.space/parse/image", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    if (response.data && response.data.ParsedResults && response.data.ParsedResults.length > 0) {
+      const parsedText = response.data.ParsedResults[0].ParsedText;
+      return parsedText;
+    } else {
+      throw new Error(response.data.ErrorMessage || "Không thể đọc văn bản từ hóa đơn.");
+    }
+  } catch (error) {
+    console.error("Lỗi scanReceiptOCR:", error);
+    throw error;
+  }
+};
+
+// 17. Extract items & prices from raw OCR text
+export const parseOcrTextToItems = (ocrText) => {
+  if (!ocrText) return [];
+  const lines = ocrText.split(/\r?\n/);
+  const items = [];
+  let idCounter = 1;
+
+  // Từ khóa bỏ qua (hóa đơn tổng, VAT, thuế, tiền mặt...)
+  const skipKeywords = [
+    "tổng", "tong", "total", "vat", "thuế", "thue", 
+    "tiền mặt", "tien mat", "cash", "thẻ", "card", 
+    "chuyển khoản", "banking", "thối", "change", 
+    "giảm giá", "giam gia", "discount", "khuyến mãi", 
+    "khuyen mai", "km", "nợ cũ", "no cu", "thành tiền", 
+    "thanh tien", "subtotal", "cộng", "cong"
+  ];
+
+  for (let line of lines) {
+    line = line.trim();
+    if (!line) continue;
+
+    // Kiểm tra xem dòng này có chứa từ khóa bỏ qua không
+    const lowerLine = line.toLowerCase();
+    const shouldSkip = skipKeywords.some(keyword => lowerLine.includes(keyword));
+    if (shouldSkip) continue;
+
+    // Tìm số tiền ở cuối dòng
+    // Match số tiền như: 150.000, 150,000, 150000, 150k, 150 vnd
+    const priceRegex = /(\d+[\d.,\s]*)\s*(k|đ|đ.|d|vnd|vnd.)?\s*$/i;
+    const match = line.match(priceRegex);
+
+    if (match) {
+      const rawPrice = match[1];
+      const suffix = match[2] ? match[2].toLowerCase() : "";
+
+      // Làm sạch giá trị số tiền
+      let cleanedPriceStr = rawPrice.replace(/[.,\s]/g, "");
+      let price = parseFloat(cleanedPriceStr) || 0;
+
+      // Xử lý hậu tố 'k' (ví dụ: 150k -> 150,000)
+      if (suffix === "k") {
+        price = price * 1000;
+      }
+
+      // Trích xuất tên món
+      const namePart = line.substring(0, line.lastIndexOf(match[0])).trim();
+      
+      // Loại bỏ ký tự phân cách ở đầu/cuối tên món
+      let cleanName = namePart.replace(/^[\s\d.\-#*+]+/g, ""); // bỏ số thứ tự
+      cleanName = cleanName.replace(/[:\-+=._~]+$/g, "").trim();
+
+      // Nếu tên món hợp lệ và giá tiền hợp lý (> 1000đ)
+      if (cleanName && cleanName.length >= 2 && price >= 1000) {
+        items.push({
+          id: idCounter.toString(),
+          name: cleanName,
+          price: price.toString(),
+          sharedWith: [] // người dùng sẽ chọn người ăn
+        });
+        idCounter++;
+      }
+    }
+  }
+
+  return items;
 };

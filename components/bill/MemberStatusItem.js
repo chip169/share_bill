@@ -30,7 +30,7 @@ export default function MemberStatusItem({ member, showSettleButton, onSettle })
             ID: {member.code}
           </Text>
 
-          {member.owedAmount && (
+          {!!member.owedAmount && (
             <Text style={tw`text-slate-500 text-xs font-semibold mt-1`}>
               Cần trả: {member.owedAmount.toLocaleString("vi-VN")} đ
             </Text>

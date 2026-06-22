@@ -22,8 +22,8 @@
       "phone": "0987654321",
       "password": "123456",
       "avatar": "https://example.com/avatar1.jpg",
-      "bankName": "Vietcombank",
-      "bankAccount": "1234567890",
+      "bankName": "Tpbank",
+      "bankAccount": "25569158888",
       "qrCode": "USER_U2",
       "bio": "Food lover",
       "status": "ACTIVE",
@@ -35,8 +35,8 @@
       "username": "USR3866",
       "fullName": "Trần Quang Võ",
       "email": "u_bscd02q8i@sharebill.com",
-      "phone": "0398768699",
-      "password": "hieu1901",
+      "phone": "0398768698",
+      "password": "123456",
       "avatar": "https://example.com/avatar_default.jpg",
       "bankName": "MBbank",
       "bankAccount": "2556915888",
@@ -44,7 +44,7 @@
       "bio": "Active Share Bill member",
       "status": "ACTIVE",
       "createdAt": "2026-06-17T09:57:52.343Z",
-      "updatedAt": "2026-06-17T09:57:52.343Z"
+      "updatedAt": "2026-06-22T09:47:43.986Z"
     },
     {
       "id": "u3",
@@ -61,6 +61,70 @@
       "status": "ACTIVE",
       "createdAt": "2026-05-21T10:00:00",
       "updatedAt": "2026-05-21T10:00:00"
+    },
+    {
+      "id": "u_7o4k3674f",
+      "username": "USR2815",
+      "fullName": "Đỗ Tiến Mạnh",
+      "email": "u_7o4k3674f@sharebill.com",
+      "phone": "0962758923",
+      "password": "123456",
+      "avatar": "https://example.com/avatar_default.jpg",
+      "bankName": "Techcombank",
+      "bankAccount": "7417062004",
+      "qrCode": "USER_USR2815",
+      "bio": "Active Share Bill member",
+      "status": "ACTIVE",
+      "createdAt": "2026-06-18T08:23:16.078Z",
+      "updatedAt": "2026-06-18T08:23:16.078Z"
+    },
+    {
+      "id": "u_eut05baug",
+      "username": "USR8262",
+      "fullName": "Ông Chủ Thiết",
+      "email": "u_eut05baug@sharebill.com",
+      "phone": "0396110522",
+      "password": "Qwerty123",
+      "avatar": "https://example.com/avatar_default.jpg",
+      "bankName": "MB Bank",
+      "bankAccount": "98609860986",
+      "qrCode": "USER_USR8262",
+      "bio": "Active Share Bill member",
+      "status": "ACTIVE",
+      "createdAt": "2026-06-18T08:24:50.058Z",
+      "updatedAt": "2026-06-18T08:24:50.058Z"
+    },
+    {
+      "id": "u_80j3jf5e8",
+      "username": "USR3711",
+      "fullName": "Văn Biển",
+      "email": "u_80j3jf5e8@sharebill.com",
+      "phone": "0974906451",
+      "password": "123456",
+      "avatar": "https://example.com/avatar_default.jpg",
+      "bankName": "MB",
+      "bankAccount": "0359185728",
+      "qrCode": "USER_USR3711",
+      "bio": "Active Share Bill member",
+      "status": "ACTIVE",
+      "createdAt": "2026-06-22T08:39:40.781Z",
+      "updatedAt": "2026-06-22T08:39:40.782Z"
+    },
+    {
+      "id": "u_yp1ycypv2",
+      "username": "USR1415",
+      "fullName": "kim văn",
+      "email": "u_yp1ycypv2@sharebill.com",
+      "phone": "0398768699",
+      "password": "123456",
+      "avatar": "https://example.com/avatar_default.jpg",
+      "bankName": "ICB",
+      "bankAccount": "2556915123",
+      "qrCode": "USER_USR1415",
+      "bio": "Active Share Bill member",
+      "status": "ACTIVE",
+      "createdAt": "2026-06-22T09:32:26.433Z",
+      "updatedAt": "2026-06-22T09:32:26.433Z"
     }
   ],
   "groups": [
@@ -132,17 +196,13 @@
           "id": "item_1",
           "name": "Vdjd",
           "price": 90000,
-          "sharedWith": [
-            "u2"
-          ]
+          "sharedWith": ["u2"]
         },
         {
           "id": "item_2",
           "name": "Bdkdksjs",
           "price": 1999,
-          "sharedWith": [
-            "u2"
-          ]
+          "sharedWith": ["u2"]
         }
       ],
       "status": "ACTIVE",
@@ -163,53 +223,31 @@
           "id": "item_1",
           "name": "Cơm",
           "price": 100000,
-          "sharedWith": [
-            "u2",
-            "u1",
-            "u3",
-            "u4"
-          ]
+          "sharedWith": ["u2", "u1", "u3", "u4"]
         },
         {
           "id": "item_2",
           "name": "Gà",
           "price": 100000,
-          "sharedWith": [
-            "u2",
-            "u1",
-            "u4"
-          ]
+          "sharedWith": ["u2", "u1", "u4"]
         },
         {
           "id": "item_3",
           "name": "Thịt lợn",
           "price": 123456,
-          "sharedWith": [
-            "u2",
-            "u3",
-            "u1"
-          ]
+          "sharedWith": ["u2", "u3", "u1"]
         },
         {
           "id": "item_4",
           "name": "Sườn xào chua ngọt",
           "price": 456000,
-          "sharedWith": [
-            "u2",
-            "u3",
-            "u4"
-          ]
+          "sharedWith": ["u2", "u3", "u4"]
         },
         {
           "id": "item_5",
           "name": "Rau",
           "price": 50000,
-          "sharedWith": [
-            "u2",
-            "u1",
-            "u3",
-            "u4"
-          ]
+          "sharedWith": ["u2", "u1", "u3", "u4"]
         }
       ],
       "status": "ACTIVE",
@@ -231,9 +269,7 @@
           "id": "item_1",
           "name": "Vip",
           "price": 123456,
-          "sharedWith": [
-            "u2"
-          ]
+          "sharedWith": ["u2"]
         }
       ],
       "status": "ACTIVE",
@@ -255,10 +291,7 @@
           "id": "item_1",
           "name": "Bi a",
           "price": 100000000,
-          "sharedWith": [
-            "u2",
-            "u1"
-          ]
+          "sharedWith": ["u2", "u1"]
         }
       ],
       "status": "ACTIVE",
@@ -280,23 +313,13 @@
           "id": "item_1",
           "name": "Tiền xe",
           "price": 2222222,
-          "sharedWith": [
-            "u2",
-            "u1",
-            "u4",
-            "u3"
-          ]
+          "sharedWith": ["u2", "u1", "u4", "u3"]
         },
         {
           "id": "item_2",
           "name": "Tiền ăn",
           "price": 88888464,
-          "sharedWith": [
-            "u2",
-            "u1",
-            "u3",
-            "u4"
-          ]
+          "sharedWith": ["u2", "u1", "u3", "u4"]
         }
       ],
       "status": "ACTIVE",
@@ -319,10 +342,7 @@
           "id": "item_1",
           "name": "Vip",
           "price": 12359,
-          "sharedWith": [
-            "u2",
-            "u1"
-          ]
+          "sharedWith": ["u2", "u1"]
         }
       ],
       "status": "ACTIVE",
@@ -345,16 +365,105 @@
           "id": "item_1",
           "name": "Vở",
           "price": 10000,
-          "sharedWith": [
-            "u2",
-            "u3"
-          ]
+          "sharedWith": ["u2", "u3"]
         }
       ],
       "status": "ACTIVE",
       "createdBy": "u2",
       "createdAt": "2026-06-17T17:45:10.925Z",
       "updatedAt": "2026-06-17T17:45:10.925Z",
+      "categoryId": "c1"
+    },
+    {
+      "id": "e_d19zezipt",
+      "billCode": "BILL-J4HG",
+      "groupId": "g1",
+      "title": "du lịch",
+      "totalAmount": 1234567,
+      "paidBy": "u2",
+      "splitMethod": "ITEMIZED",
+      "expenseDate": "2026-06-18T08:25",
+      "items": [
+        {
+          "id": "item_1",
+          "name": "Tiền xe",
+          "price": 1234567,
+          "sharedWith": ["u2", "u_7o4k3674f", "u_eut05baug"]
+        }
+      ],
+      "status": "ACTIVE",
+      "createdBy": "u2",
+      "createdAt": "2026-06-18T08:26:12.743Z",
+      "updatedAt": "2026-06-18T08:34:04.775Z",
+      "categoryId": "c2"
+    },
+    {
+      "id": "e_f5if78q0i",
+      "billCode": "BILL-VGCZ",
+      "groupId": "g1",
+      "title": "Bia",
+      "totalAmount": 500000,
+      "paidBy": "u2",
+      "splitMethod": "ITEMIZED",
+      "expenseDate": "2026-06-22T08:35",
+      "items": [
+        {
+          "id": "item_1",
+          "name": "Đậu tẩm hành",
+          "price": 500000,
+          "sharedWith": ["u2"]
+        }
+      ],
+      "status": "ACTIVE",
+      "createdBy": "u2",
+      "createdAt": "2026-06-22T08:35:46.925Z",
+      "updatedAt": "2026-06-22T08:35:46.925Z",
+      "categoryId": "c1"
+    },
+    {
+      "id": "e_z5ki023q0",
+      "billCode": "BILL-WTF6",
+      "groupId": "g1",
+      "title": "Lẩu Gà",
+      "totalAmount": 1000000,
+      "paidBy": "u_80j3jf5e8",
+      "splitMethod": "ITEMIZED",
+      "expenseDate": "2026-06-22T08:43",
+      "items": [
+        {
+          "id": "item_1",
+          "name": "Lẩu Gà",
+          "price": 1000000,
+          "sharedWith": ["u_80j3jf5e8"]
+        }
+      ],
+      "status": "ACTIVE",
+      "createdBy": "u_80j3jf5e8",
+      "createdAt": "2026-06-22T08:43:29.527Z",
+      "updatedAt": "2026-06-22T08:43:29.527Z",
+      "categoryId": "c1"
+    },
+    {
+      "id": "e_gen6ne2o7",
+      "billCode": "BILL-58Q3",
+      "groupId": "g1",
+      "title": "hiis",
+      "totalAmount": 123805,
+      "paidBy": "u2",
+      "splitMethod": "ITEMIZED",
+      "expenseDate": "2026-06-22T09:19",
+      "items": [
+        {
+          "id": "item_1",
+          "name": "Cc",
+          "price": 123805,
+          "sharedWith": ["u2", "u1", "u3"]
+        }
+      ],
+      "status": "ACTIVE",
+      "createdBy": "u2",
+      "createdAt": "2026-06-22T09:20:08.730Z",
+      "updatedAt": "2026-06-22T09:20:08.730Z",
       "categoryId": "c1"
     }
   ],
@@ -568,6 +677,106 @@
       "remainingAmount": 0,
       "isSettled": true,
       "settledAt": "2026-06-17T17:45:43.735Z"
+    },
+    {
+      "id": "ep_01dahwmh3",
+      "expenseId": "e_d19zezipt",
+      "userId": "u2",
+      "owedAmount": 411522,
+      "paidAmount": 1234567,
+      "remainingAmount": 0,
+      "isSettled": true,
+      "settledAt": "2026-06-18T08:34:04.985Z"
+    },
+    {
+      "id": "ep_dron8diub",
+      "expenseId": "e_d19zezipt",
+      "userId": "u_7o4k3674f",
+      "owedAmount": 411522,
+      "paidAmount": 0,
+      "remainingAmount": 411522,
+      "isSettled": false,
+      "settledAt": null
+    },
+    {
+      "id": "ep_izu5lqx10",
+      "expenseId": "e_d19zezipt",
+      "userId": "u_eut05baug",
+      "owedAmount": 411522,
+      "paidAmount": 0,
+      "remainingAmount": 411522,
+      "isSettled": false,
+      "settledAt": null
+    },
+    {
+      "id": "ep_tbgmwlzuq",
+      "expenseId": "e_f5if78q0i",
+      "userId": "u2",
+      "owedAmount": 500000,
+      "paidAmount": 500000,
+      "remainingAmount": 0,
+      "isSettled": true,
+      "settledAt": "2026-06-22T08:35:47.040Z"
+    },
+    {
+      "id": "ep_f09oyh8sm",
+      "expenseId": "e1",
+      "userId": "u_80j3jf5e8",
+      "owedAmount": 0,
+      "paidAmount": 0,
+      "remainingAmount": 0,
+      "isSettled": true,
+      "settledAt": "2026-06-22T08:40:42.517Z"
+    },
+    {
+      "id": "ep_3uzn3ohfv",
+      "expenseId": "e_z5ki023q0",
+      "userId": "u_80j3jf5e8",
+      "owedAmount": 1000000,
+      "paidAmount": 1000000,
+      "remainingAmount": 0,
+      "isSettled": true,
+      "settledAt": "2026-06-22T08:43:29.580Z"
+    },
+    {
+      "id": "ep_d8zv76ktl",
+      "expenseId": "e_z5ki023q0",
+      "userId": "u2",
+      "owedAmount": 0,
+      "paidAmount": 0,
+      "remainingAmount": 0,
+      "isSettled": true,
+      "settledAt": "2026-06-22T08:45:20.332Z"
+    },
+    {
+      "id": "ep_w0i2f86f6",
+      "expenseId": "e_gen6ne2o7",
+      "userId": "u2",
+      "owedAmount": 41268,
+      "paidAmount": 123805,
+      "remainingAmount": 0,
+      "isSettled": true,
+      "settledAt": "2026-06-22T09:20:09.172Z"
+    },
+    {
+      "id": "ep_ybwh2rxmz",
+      "expenseId": "e_gen6ne2o7",
+      "userId": "u1",
+      "owedAmount": 41268,
+      "paidAmount": 0,
+      "remainingAmount": 41268,
+      "isSettled": false,
+      "settledAt": null
+    },
+    {
+      "id": "ep_angcvzs2s",
+      "expenseId": "e_gen6ne2o7",
+      "userId": "u3",
+      "owedAmount": 41268,
+      "paidAmount": 0,
+      "remainingAmount": 41268,
+      "isSettled": false,
+      "settledAt": null
     }
   ],
   "settlements": [
@@ -606,6 +815,46 @@
       "relatedId": "s1",
       "isRead": false,
       "createdAt": "2026-05-22T09:00:00"
+    },
+    {
+      "id": "n_a6arubqjj",
+      "userId": "u2",
+      "title": "Thành viên mới tham gia bill",
+      "content": "Một người dùng đã tham gia hóa đơn \"du lịch\" bằng mã của bạn.",
+      "type": "EXPENSE",
+      "relatedId": "e_d19zezipt",
+      "isRead": true,
+      "createdAt": "2026-06-18T08:27:05.498Z"
+    },
+    {
+      "id": "n_jucgfa7ud",
+      "userId": "u2",
+      "title": "Thành viên mới tham gia bill",
+      "content": "Một người dùng đã tham gia hóa đơn \"du lịch\" bằng mã của bạn.",
+      "type": "EXPENSE",
+      "relatedId": "e_d19zezipt",
+      "isRead": true,
+      "createdAt": "2026-06-18T08:27:34.205Z"
+    },
+    {
+      "id": "n_obu57qr9n",
+      "userId": "u1",
+      "title": "Thành viên mới tham gia bill",
+      "content": "Một người dùng đã tham gia hóa đơn \"BBQ Dinner\" bằng mã của bạn.",
+      "type": "EXPENSE",
+      "relatedId": "e1",
+      "isRead": false,
+      "createdAt": "2026-06-22T08:40:42.545Z"
+    },
+    {
+      "id": "n_noqmtrbch",
+      "userId": "u_80j3jf5e8",
+      "title": "Thành viên mới tham gia bill",
+      "content": "Một người dùng đã tham gia hóa đơn \"Lẩu Gà\" bằng mã của bạn.",
+      "type": "EXPENSE",
+      "relatedId": "e_z5ki023q0",
+      "isRead": false,
+      "createdAt": "2026-06-22T08:45:20.365Z"
     }
   ],
   "categories": [

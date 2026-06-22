@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, ScrollView, ActivityIndicator, TouchableOpacity, SafeAreaView, Alert } from "react-native";
+import { View, ScrollView, ActivityIndicator, TouchableOpacity, SafeAreaView, Alert, Image } from "react-native";
 import { Button, Text, Dialog, Portal } from "react-native-paper";
 import tw from "twrnc";
 import { Home, FileText, User, ChevronLeft, QrCode } from "lucide-react-native";
@@ -10,6 +10,24 @@ import MemberStatusList from "../components/bill/MemberStatusList";
 import BankInfoCard from "../components/bill/BankInfoCard";
 
 import { fetchBillDetail, settleParticipantPayment } from "../services/api";
+import { sendLocalNotification } from "../services/notifications";
+
+const getVietQrBankCode = (bankName) => {
+  if (!bankName) return "VCB";
+  const name = bankName.trim().toUpperCase();
+  if (name.includes("VIETCOMBANK") || name === "VCB") return "VCB";
+  if (name.includes("MB") || name.includes("MILITARY")) return "MB";
+  if (name.includes("TECHCOMBANK") || name === "TCB") return "TCB";
+  if (name.includes("BIDV")) return "BIDV";
+  if (name.includes("VIETIN") || name === "CTG" || name === "ICB") return "ICB";
+  if (name.includes("AGRI") || name === "VARB") return "AGRIBANK";
+  if (name.includes("VP") || name === "VPB") return "VPB";
+  if (name.includes("TP") || name === "TPB") return "TPB";
+  if (name.includes("ACB")) return "ACB";
+  if (name.includes("SACOMBANK") || name === "STB") return "STB";
+  if (name.includes("VIB")) return "VIB";
+  return name.replace(/\s+/g, "");
+};
 
 export default function BillDetailScreen({ onNavigate, routeParams, currentUser }) {
   const [billData, setBillData] = useState(null);
@@ -47,6 +65,13 @@ export default function BillDetailScreen({ onNavigate, routeParams, currentUser 
           onPress: async () => {
             try {
               await settleParticipantPayment(member.participantId);
+              
+              // Gửi thông báo thanh toán thành công
+              sendLocalNotification(
+                "Xác nhận thanh toán thành công! 💰",
+                `Bạn đã xác nhận thành viên ${member.name} thanh toán thành công.`
+              );
+
               Alert.alert("Thành công", "Đã xác nhận thanh toán thành công!");
               // Refresh page
               loadBillDetail();
@@ -82,7 +107,7 @@ export default function BillDetailScreen({ onNavigate, routeParams, currentUser 
   // Tính số tiền dựa trên vai trò của người đang đăng nhập
   const myMemberRecord = members.find((m) => m.id === currentUser?.id);
   const myOwedAmount = myMemberRecord ? myMemberRecord.remainingAmount : 0;
-  
+
   const remainingToCollect = members
     .filter((m) => m.id !== bill.creatorId)
     .reduce((sum, m) => sum + (m.remainingAmount || 0), 0);
@@ -100,7 +125,7 @@ export default function BillDetailScreen({ onNavigate, routeParams, currentUser 
           <Text style={tw`text-lg font-bold text-slate-800`}>Chi tiết hóa đơn</Text>
         </View>
         {isOwner && (
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => onNavigate("createbill", { editBillId: bill.id })}
             style={tw`bg-sky-50 px-3.5 py-1.5 rounded-full`}
           >
@@ -119,8 +144,8 @@ export default function BillDetailScreen({ onNavigate, routeParams, currentUser 
 
         <BillItemsCard bill={bill} />
 
-        <MemberStatusList 
-          members={members} 
+        <MemberStatusList
+          members={members}
           showSettleButton={isOwner}
           onSettle={handleSettlePayment}
         />
@@ -148,8 +173,12 @@ export default function BillDetailScreen({ onNavigate, routeParams, currentUser 
           <Dialog.Title style={tw`text-center font-bold text-slate-800`}>Mã QR Chuyển Khoản</Dialog.Title>
           <Dialog.Content style={tw`items-center py-4`}>
             {/* Displaying simple VietQR simulation */}
-            <View style={tw`w-52 h-52 bg-slate-100 border border-slate-200 rounded-2xl items-center justify-center mb-4`}>
-              <QrCode size={120} color="#334155" />
+            <View style={tw`w-52 h-52 bg-white border border-slate-100 rounded-2xl items-center justify-center mb-4 overflow-hidden shadow-sm`}>
+              <Image
+                source={{ uri: `https://img.vietqr.io/image/${getVietQrBankCode(bank.bankName)}-${bank.accountNumber}-compact2.png?amount=${displayAmount}&addInfo=${encodeURIComponent(bank.transferContent)}&accountName=${encodeURIComponent(bank.owner)}` }}
+                style={tw`w-full h-full`}
+                resizeMode="contain"
+              />
             </View>
             <Text style={tw`text-slate-800 font-bold text-sm text-center mb-1`}>
               {bank.bankName} - {bank.accountNumber}

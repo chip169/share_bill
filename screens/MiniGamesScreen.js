@@ -5,6 +5,17 @@ import { ChevronLeft, RotateCw, Plus, Trash2, HelpCircle, Award } from "lucide-r
 import tw from "twrnc";
 import { Audio } from "expo-av";
 
+const SLICE_COLORS = [
+  "#ef4444", // Red
+  "#3b82f6", // Blue
+  "#10b981", // Emerald
+  "#f59e0b", // Amber
+  "#8b5cf6", // Purple
+  "#ec4899", // Pink
+  "#14b8a6", // Teal
+  "#6366f1"  // Indigo
+];
+
 export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }) {
   const [activeGame, setActiveGame] = useState("wheel"); // "wheel" or "dice"
   
@@ -229,7 +240,7 @@ export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }
                   { transform: [{ rotate: rotateWheel }] },
                 ]}
               >
-                {/* Spoke lines dividers */}
+                {/* Spoke lines dividers - exactly N radii */}
                 {participants.map((p, idx) => {
                   const rotation = (360 / participants.length) * idx;
                   return (
@@ -239,14 +250,17 @@ export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }
                         styles.segmentLine,
                         { transform: [{ rotate: `${rotation}deg` }] },
                       ]}
-                    />
+                    >
+                      <View style={{ height: "50%", backgroundColor: "#cbd5e1", opacity: 0.5, width: "100%" }} />
+                    </View>
                   );
                 })}
 
-                {/* Text labels centered in each slice */}
+                {/* Text labels centered in each slice, styled as vertical pills */}
                 {participants.map((p, idx) => {
                   const segmentAngle = 360 / participants.length;
                   const rotation = (segmentAngle * idx) + (segmentAngle / 2);
+                  const pillColor = SLICE_COLORS[idx % SLICE_COLORS.length];
                   return (
                     <View
                       key={`text_${p.id || idx}`}
@@ -255,15 +269,24 @@ export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }
                         { transform: [{ rotate: `${rotation}deg` }] },
                       ]}
                     >
-                      <Text
-                        numberOfLines={1}
+                      <View
                         style={[
-                          tw`text-slate-800 font-bold text-[10px]`,
-                          { transform: [{ rotate: "90deg" }] }
+                          tw`px-2.5 py-1 rounded-full shadow-sm items-center justify-center border border-white/20`,
+                          {
+                            backgroundColor: pillColor,
+                            transform: [{ rotate: "90deg" }], // Aligns pill vertically along the radius
+                            minWidth: 50,
+                            maxWidth: 80,
+                          }
                         ]}
                       >
-                        {p.fullName}
-                      </Text>
+                        <Text
+                          numberOfLines={1}
+                          style={tw`text-white font-bold text-[8px] text-center`}
+                        >
+                          {p.fullName}
+                        </Text>
+                      </View>
                     </View>
                   );
                 })}
@@ -380,12 +403,11 @@ export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }
 const styles = StyleSheet.create({
   segmentLine: {
     position: "absolute",
-    top: "50%",
-    left: 0,
-    width: "100%",
-    height: 1.5,
-    backgroundColor: "#f97316", // Đường kẻ phân biệt ô rõ ràng
-    opacity: 0.3,
+    top: 0,
+    bottom: 0,
+    left: "50%",
+    width: 2,
+    marginLeft: -1,
   },
   wheelTextContainer: {
     position: "absolute",
@@ -394,6 +416,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     alignItems: "center",
-    paddingTop: 24, // 24px từ mép ngoài của vòng tròn
+    paddingTop: 12, // Move pills slightly closer to the edge
   },
 });
