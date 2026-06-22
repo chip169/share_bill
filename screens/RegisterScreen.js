@@ -3,6 +3,7 @@ import { View, SafeAreaView, KeyboardAvoidingView, Platform, TouchableOpacity, S
 import { TextInput, Button, Text, HelperText, Portal, Dialog } from "react-native-paper";
 import { User, Phone, Lock, CreditCard, Sparkles, ChevronLeft, Search } from "lucide-react-native";
 import tw from "twrnc";
+import { LinearGradient } from "expo-linear-gradient";
 import { registerUser, fetchBankList } from "../services/api";
 import { sendLocalNotification } from "../services/notifications";
 
@@ -125,12 +126,17 @@ export default function RegisterScreen({ onNavigate }) {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={tw`flex-1`}
       >
-        <View style={tw`flex-row items-center px-4 py-3 border-b border-slate-100 bg-white`}>
-          <TouchableOpacity onPress={() => onNavigate("login")} style={tw`p-1 mr-2`}>
-            <ChevronLeft size={24} color="#334155" />
+        <LinearGradient
+          colors={["#0f172a", "#1e293b", "#0ea5e9"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={tw`flex-row items-center px-4 py-4 shadow-sm rounded-b-2xl`}
+        >
+          <TouchableOpacity onPress={() => onNavigate("login")} style={tw`p-2 bg-white/10 rounded-full mr-3`}>
+            <ChevronLeft size={20} color="white" />
           </TouchableOpacity>
-          <Text style={tw`text-lg font-bold text-slate-800`}>Tạo tài khoản</Text>
-        </View>
+          <Text style={tw`text-base font-black text-white`}>Tạo tài khoản</Text>
+        </LinearGradient>
 
         <ScrollView contentContainerStyle={tw`px-6 py-6`}>
           {/* Header text */}
