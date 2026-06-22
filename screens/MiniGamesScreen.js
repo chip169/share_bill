@@ -1,8 +1,9 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { View, SafeAreaView, ScrollView, TouchableOpacity, Animated, Easing, StyleSheet, Alert, Modal } from "react-native";
 import { Button, Text, TextInput, Card, ActivityIndicator } from "react-native-paper";
 import { ChevronLeft, RotateCw, Plus, Trash2, HelpCircle, Award } from "lucide-react-native";
 import tw from "twrnc";
+import { LinearGradient } from "expo-linear-gradient";
 import { Audio } from "expo-av";
 
 const SLICE_COLORS = [
@@ -19,10 +20,14 @@ const SLICE_COLORS = [
 export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }) {
   const [activeGame, setActiveGame] = useState("wheel"); // "wheel" or "dice"
   
-  const playSound = async (uri) => {
+  useEffect(() => {
+    playSound();
+  }, []);
+
+  const playSound = async () => {
     try {
       const { sound } = await Audio.Sound.createAsync(
-        { uri },
+        require("../assets/vip.mp3"),
         { shouldPlay: true }
       );
       sound.setOnPlaybackStatusUpdate((status) => {
@@ -64,7 +69,7 @@ export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }
     setSpinning(true);
     setWinners([]);
     spinValue.setValue(0);
-    playSound("https://www.soundjay.com/misc/sounds/bell-ring-01.mp3");
+    playSound();
 
     // Shuffle and pick unique winners
     const shuffled = [...participants].sort(() => 0.5 - Math.random());
@@ -89,7 +94,7 @@ export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }
       setWinners(selectedWinners);
       setSpinning(false);
       setShowWinnerModal(true);
-      playSound("https://www.soundjay.com/misc/sounds/success-bell-09.mp3");
+      playSound();
     });
   };
 
@@ -103,7 +108,7 @@ export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }
     if (rolling) return;
     setRolling(true);
     setDiceResults({});
-    playSound("https://www.soundjay.com/misc/sounds/bell-ring-01.mp3");
+    playSound();
 
     let rollCount = 0;
     const interval = setInterval(() => {
@@ -138,7 +143,7 @@ export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }
         setWinners(selectedWinners);
         setRolling(false);
         setShowWinnerModal(true);
-        playSound("https://www.soundjay.com/misc/sounds/success-bell-09.mp3");
+        playSound();
       }
     }, 120);
   };
@@ -170,12 +175,17 @@ export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
       {/* Header */}
-      <View style={tw`flex-row items-center px-4 py-3 border-b border-slate-100 bg-white`}>
-        <TouchableOpacity onPress={handleGoBack} style={tw`p-1 mr-2`}>
-          <ChevronLeft size={24} color="#334155" />
+      <LinearGradient
+        colors={["#0f172a", "#1e293b", "#0ea5e9"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={tw`flex-row items-center px-4 py-4 shadow-sm rounded-b-2xl`}
+      >
+        <TouchableOpacity onPress={handleGoBack} style={tw`p-2 bg-white/10 rounded-full mr-3`}>
+          <ChevronLeft size={20} color="white" />
         </TouchableOpacity>
-        <Text style={tw`text-lg font-bold text-slate-800`}>Trò chơi chọn người trả bill</Text>
-      </View>
+        <Text style={tw`text-base font-black text-white`}>Chọn người trả bill 🎲</Text>
+      </LinearGradient>
 
       <ScrollView contentContainerStyle={tw`pb-10`}>
         {/* Toggle Game Tabs */}

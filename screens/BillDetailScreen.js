@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, ScrollView, ActivityIndicator, TouchableOpacity, SafeAreaView, Alert, Image } from "react-native";
 import { Button, Text, Dialog, Portal } from "react-native-paper";
 import tw from "twrnc";
+import { LinearGradient } from "expo-linear-gradient";
 import { Home, FileText, User, ChevronLeft, QrCode } from "lucide-react-native";
 import BillInfoCard from "../components/bill/BillInfoCard";
 import BillItemsCard from "../components/bill/BillItemsCard";
@@ -117,22 +118,27 @@ export default function BillDetailScreen({ onNavigate, routeParams, currentUser 
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
       {/* Top Header */}
-      <View style={tw`flex-row items-center justify-between px-4 py-3 border-b border-slate-100 bg-white`}>
+      <LinearGradient
+        colors={["#0f172a", "#1e293b", "#0ea5e9"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={tw`flex-row items-center justify-between px-4 py-4 shadow-sm rounded-b-2xl`}
+      >
         <View style={tw`flex-row items-center`}>
-          <TouchableOpacity onPress={() => onNavigate("home")} style={tw`p-1 mr-2`}>
-            <ChevronLeft size={24} color="#334155" />
+          <TouchableOpacity onPress={() => onNavigate("home")} style={tw`p-2 bg-white/10 rounded-full mr-3`}>
+            <ChevronLeft size={20} color="white" />
           </TouchableOpacity>
-          <Text style={tw`text-lg font-bold text-slate-800`}>Chi tiết hóa đơn</Text>
+          <Text style={tw`text-base font-black text-white`}>Chi tiết hóa đơn</Text>
         </View>
         {isOwner && (
           <TouchableOpacity
             onPress={() => onNavigate("createbill", { editBillId: bill.id })}
-            style={tw`bg-sky-50 px-3.5 py-1.5 rounded-full`}
+            style={tw`bg-sky-500/20 border border-sky-400/30 px-3.5 py-1.5 rounded-full`}
           >
-            <Text style={tw`text-sky-600 text-xs font-bold`}>✏️ Sửa</Text>
+            <Text style={tw`text-sky-400 text-xs font-black`}>✏️ Sửa</Text>
           </TouchableOpacity>
         )}
-      </View>
+      </LinearGradient>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
