@@ -7,6 +7,7 @@ import { searchUserByUsername, createExpense, updateExpense, fetchBillDetail, sc
 import { Audio } from "expo-av";
 import { sendLocalNotification } from "../services/notifications";
 import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 
 const CATEGORIES = [
   { id: "c1", name: "Ăn uống", icon: "🍔" },
@@ -95,6 +96,16 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
     }
   }, [currentUser, routeParams, isEditMode]);
 
+  // Kích hoạt tự động quét hóa đơn nếu đi từ nút hành động nhanh ở trang chủ
+  useEffect(() => {
+    if (routeParams?.autoScan) {
+      const timer = setTimeout(() => {
+        handleScanBill();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [routeParams?.autoScan]);
+
   // Handle game winner pre-population (from routeParams if redirected from minigames)
   useEffect(() => {
     if (routeParams?.winnerId && routeParams?.winnerName) {
@@ -170,7 +181,8 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
 
   // Add new item row
   const handleAddItem = () => {
-    const newId = (items.length + 1).toString();
+    const maxId = items.reduce((max, item) => Math.max(max, parseInt(item.id) || 0), 0);
+    const newId = (maxId + 1).toString();
     // Default tag: everyone in members
     const allIds = members.map((m) => m.id);
     setItems([
@@ -295,10 +307,10 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
               text: "Thêm tiếp vào hóa đơn",
               onPress: () => {
                 setItems(prev => {
-                  const startId = prev.length + 1;
+                  const maxId = prev.reduce((max, item) => Math.max(max, parseInt(item.id) || 0), 0);
                   const adjusted = mappedExtractedItems.map((item, idx) => ({
                     ...item,
-                    id: (startId + idx).toString()
+                    id: (maxId + 1 + idx).toString()
                   }));
                   // Lọc bỏ món mặc định nếu nó trống
                   const filteredPrev = prev.filter(item => item.name.trim() !== "" || item.price !== "");
@@ -444,29 +456,33 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
       {/* Top Header */}
-      <View style={tw`flex-row items-center justify-between px-4 py-3 border-b border-slate-100 bg-white`}>
+      <LinearGradient
+        colors={["#0f172a", "#1e293b", "#0ea5e9"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={tw`flex-row items-center justify-between px-4 py-4 shadow-sm rounded-b-2xl`}
+      >
         <View style={tw`flex-row items-center`}>
-          <TouchableOpacity onPress={() => onNavigate(isEditMode ? "billdetail" : "home", isEditMode ? { billId: routeParams.editBillId } : undefined)} style={tw`p-1 mr-2`}>
-            <ChevronLeft size={24} color="#334155" />
+          <TouchableOpacity
+            onPress={() => onNavigate(isEditMode ? "billdetail" : "home", isEditMode ? { billId: routeParams.editBillId } : undefined)}
+            style={tw`p-2 bg-white/10 rounded-full mr-3`}
+          >
+            <ChevronLeft size={20} color="white" />
           </TouchableOpacity>
-          <Text style={tw`text-lg font-bold text-slate-800`}>{isEditMode ? "Chỉnh sửa hóa đơn" : "Tạo hóa đơn chia tiền"}</Text>
+          <Text style={tw`text-base font-black text-white`}>
+            {isEditMode ? "Chỉnh sửa hóa đơn" : "Tạo hóa đơn"}
+          </Text>
         </View>
         <TouchableOpacity
-          onPress={async () => {
-            try {
-              const { sound } = await Audio.Sound.createAsync(
-                { uri: "https://www.soundjay.com/buttons/sounds/button-3.mp3" },
-                { shouldPlay: true }
+          onPress={() => {
+            if (members.length <= 1) {
+              Alert.alert(
+                "Không thể chơi game ⚠️",
+                "Hóa đơn của bạn hiện chỉ có 1 thành viên. Vui lòng thêm các thành viên khác để có thể chơi game chọn người trả!",
+                [{ text: "Đồng ý" }]
               );
-              sound.setOnPlaybackStatusUpdate((status) => {
-                if (status.didJustFinish) {
-                  sound.unloadAsync();
-                }
-              });
-            } catch (e) {
-              console.log("Lỗi âm thanh:", e);
+              return;
             }
-
             Alert.alert(
               "⚠️ CẢNH BÁO ĐẶT CƯỢC",
               "Đặt cược có thể dẫn đến việc gánh toàn bộ hóa đơn! Bạn hãy suy nghĩ thật kỹ trước khi chơi minigame.",
@@ -484,11 +500,11 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
               ]
             );
           }}
-          style={tw`bg-orange-100 px-3 py-1.5 rounded-full`}
+          style={tw`bg-orange-500/20 border border-orange-400/30 px-3.5 py-1.5 rounded-full`}
         >
-          <Text style={tw`text-orange-600 text-xs font-bold`}>🎲 Chọn người trả</Text>
+          <Text style={tw`text-orange-400 text-xs font-black`}>🎲 Chọn người trả</Text>
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={tw`pb-32`}>
         {/* Info Card */}
@@ -616,7 +632,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
               </TouchableOpacity>
               <TouchableOpacity onPress={handleAddItem} style={tw`flex-row items-center gap-1 bg-sky-50 px-3 py-1.5 rounded-full`}>
                 <Plus size={14} color="#0284c7" />
-                <Text style={tw`text-sky-700 text-xs font-bold`}>Thêm món</Text>
+                <Text style={tw`text-sky-700 text-xs font-bold`}>Thêm</Text>
               </TouchableOpacity>
             </View>
           </View>
