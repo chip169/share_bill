@@ -1,13 +1,43 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert, Image } from "react-native";
 import { Portal, Dialog, Button, TextInput } from "react-native-paper";
-import { CreditCard, QrCode, Bell, Settings, HelpCircle, LogOut, Home, FileText, User, ChevronRight, Check } from "lucide-react-native";
+import { CreditCard, QrCode, Bell, Settings, HelpCircle, LogOut, Home, FileText, User, ChevronRight, Check, Search } from "lucide-react-native";
 import tw from "twrnc";
 
 import Header from "../components/profile/Header";
 import PersonalInfo from "../components/profile/PersonalInfo";
 import MenuItem from "../components/profile/MenuItem";
-import { fetchUserProfile, updateUserProfile, fetchNotifications, markNotificationRead } from "../services/api";
+import { fetchUserProfile, updateUserProfile, fetchNotifications, markNotificationRead, fetchBankList } from "../services/api";
+
+const POPULAR_BANKS = [
+  { code: "MB", shortName: "MBBank", name: "Ngân hàng TMCP Quân Đội", bin: "970422", logo: "https://api.vietqr.io/img/MB.png" },
+  { code: "VCB", shortName: "Vietcombank", name: "Ngân hàng TMCP Ngoại Thương", bin: "970436", logo: "https://api.vietqr.io/img/VCB.png" },
+  { code: "TCB", shortName: "Techcombank", name: "Ngân hàng TMCP Kỹ Thương", bin: "970407", logo: "https://api.vietqr.io/img/TCB.png" },
+  { code: "BIDV", shortName: "BIDV", name: "Ngân hàng TMCP Đầu Tư và Phát Triển", bin: "970418", logo: "https://api.vietqr.io/img/BIDV.png" },
+  { code: "CTG", shortName: "VietinBank", name: "Ngân hàng TMCP Công Thương", bin: "970415", logo: "https://api.vietqr.io/img/CTG.png" },
+  { code: "ACB", shortName: "ACB", name: "Ngân hàng TMCP Á Châu", bin: "970416", logo: "https://api.vietqr.io/img/ACB.png" },
+  { code: "AGRIBANK", shortName: "Agribank", name: "Ngân hàng Nông nghiệp & PTNT", bin: "970405", logo: "https://api.vietqr.io/img/AGRIBANK.png" },
+  { code: "VPB", shortName: "VPBank", name: "Ngân hàng TMCP Việt Nam Thịnh Vượng", bin: "970432", logo: "https://api.vietqr.io/img/VPB.png" },
+  { code: "TPB", shortName: "TPBank", name: "Ngân hàng TMCP Tiên Phong", bin: "970423", logo: "https://api.vietqr.io/img/TPB.png" },
+  { code: "STB", shortName: "Sacombank", name: "Ngân hàng TMCP Sài Gòn Thương Tín", bin: "970403", logo: "https://api.vietqr.io/img/STB.png" }
+];
+
+const getVietQrBankCode = (bankName) => {
+  if (!bankName) return "VCB";
+  const name = bankName.trim().toUpperCase();
+  if (name.includes("VIETCOMBANK") || name === "VCB") return "VCB";
+  if (name.includes("MB") || name.includes("MILITARY")) return "MB";
+  if (name.includes("TECHCOMBANK") || name === "TCB") return "TCB";
+  if (name.includes("BIDV")) return "BIDV";
+  if (name.includes("VIETIN") || name === "CTG" || name === "ICB") return "ICB";
+  if (name.includes("AGRI") || name === "VARB") return "AGRIBANK";
+  if (name.includes("VP") || name === "VPB") return "VPB";
+  if (name.includes("TP") || name === "TPB") return "TPB";
+  if (name.includes("ACB")) return "ACB";
+  if (name.includes("SACOMBANK") || name === "STB") return "STB";
+  if (name.includes("VIB")) return "VIB";
+  return name.replace(/\s+/g, "");
+};
 
 const ProfileScreen = ({ onNavigate, currentUser, onLogout }) => {
   const [user, setUser] = useState(null);
@@ -24,6 +54,34 @@ const ProfileScreen = ({ onNavigate, currentUser, onLogout }) => {
   const [notifications, setNotifications] = useState([]);
   const [loadingNotif, setLoadingNotif] = useState(false);
 
+  // Bank Picker states
+  const [bankList, setBankList] = useState(POPULAR_BANKS);
+  const [showBankPicker, setShowBankPicker] = useState(false);
+  const [bankSearch, setBankSearch] = useState("");
+
+  useEffect(() => {
+    const loadBanks = async () => {
+      const apiBanks = await fetchBankList();
+      if (apiBanks && apiBanks.length > 0) {
+        const mapped = apiBanks.map(b => ({
+          code: b.code,
+          shortName: b.shortName || b.code,
+          name: b.name,
+          bin: b.bin,
+          logo: b.logo || `https://api.vietqr.io/img/${b.code}.png`
+        }));
+        setBankList(mapped);
+      }
+    };
+    loadBanks();
+  }, []);
+
+  const filteredBanks = bankList.filter(b => 
+    b.code.toLowerCase().includes(bankSearch.toLowerCase()) ||
+    b.shortName.toLowerCase().includes(bankSearch.toLowerCase()) ||
+    b.name.toLowerCase().includes(bankSearch.toLowerCase())
+  );
+
   useEffect(() => {
     loadProfile();
   }, [currentUser]);
@@ -32,10 +90,14 @@ const ProfileScreen = ({ onNavigate, currentUser, onLogout }) => {
     if (!currentUser) return;
     setLoading(true);
     try {
-      const profileData = await fetchUserProfile(currentUser.id);
+      const [profileData, notifData] = await Promise.all([
+        fetchUserProfile(currentUser.id),
+        fetchNotifications(currentUser.id)
+      ]);
       setUser(profileData);
       setEditBankName(profileData.bankName || "");
       setEditBankAccount(profileData.bankAccount || "");
+      setNotifications(notifData);
     } catch (error) {
       console.log("Lỗi kết nối API profile:", error);
     } finally {
@@ -125,6 +187,7 @@ const ProfileScreen = ({ onNavigate, currentUser, onLogout }) => {
               icon={Bell} 
               label="Thông báo" 
               onPress={handleOpenNotifications} 
+              showBadge={notifications.some(n => !n.isRead)}
             />
             <MenuItem 
               icon={Settings} 
@@ -160,15 +223,20 @@ const ProfileScreen = ({ onNavigate, currentUser, onLogout }) => {
         <Dialog visible={showBankModal} onDismiss={() => setShowBankModal(false)} style={tw`bg-white rounded-3xl`}>
           <Dialog.Title style={tw`font-bold text-slate-800`}>Tài khoản ngân hàng</Dialog.Title>
           <Dialog.Content style={tw`gap-4`}>
-            <TextInput
-              label="Tên Ngân hàng (VCB, MB...)"
-              value={editBankName}
-              onChangeText={setEditBankName}
-              mode="outlined"
-              outlineColor="#e2e8f0"
-              activeOutlineColor="#0ea5e9"
-              style={tw`bg-white text-slate-700`}
-            />
+            <TouchableOpacity onPress={() => setShowBankPicker(true)}>
+              <View pointerEvents="none">
+                <TextInput
+                  label="Ngân hàng"
+                  value={editBankName}
+                  placeholder="Bấm để chọn ngân hàng"
+                  mode="outlined"
+                  outlineColor="#e2e8f0"
+                  activeOutlineColor="#0ea5e9"
+                  style={tw`bg-white text-slate-700`}
+                  editable={false}
+                />
+              </View>
+            </TouchableOpacity>
             <TextInput
               label="Số tài khoản"
               value={editBankAccount}
@@ -186,12 +254,62 @@ const ProfileScreen = ({ onNavigate, currentUser, onLogout }) => {
           </Dialog.Actions>
         </Dialog>
 
+        {/* Bank Picker Dialog */}
+        <Dialog visible={showBankPicker} onDismiss={() => { setShowBankPicker(false); setBankSearch(""); }} style={tw`bg-white rounded-3xl max-h-[80%]`}>
+          <Dialog.Title style={tw`font-bold text-slate-800`}>Chọn Ngân hàng</Dialog.Title>
+          <Dialog.Content style={tw`gap-3`}>
+            <TextInput
+              label="Tìm kiếm ngân hàng..."
+              value={bankSearch}
+              onChangeText={setBankSearch}
+              mode="outlined"
+              outlineColor="#e2e8f0"
+              activeOutlineColor="#0ea5e9"
+              style={tw`bg-white text-slate-700 mb-2 h-11 text-xs`}
+              left={<TextInput.Icon icon={() => <Search size={18} color="#94a3b8" />} />}
+              dense
+            />
+            <ScrollView style={tw`max-h-80`}>
+              {filteredBanks.length === 0 ? (
+                <View style={tw`items-center py-6`}>
+                  <Text style={tw`text-slate-400 text-sm`}>Không tìm thấy ngân hàng!</Text>
+                </View>
+              ) : (
+                filteredBanks.map((b) => (
+                  <TouchableOpacity
+                    key={b.bin}
+                    onPress={() => {
+                      setEditBankName(b.code);
+                      setShowBankPicker(false);
+                      setBankSearch("");
+                    }}
+                    style={tw`flex-row items-center py-3 border-b border-slate-50`}
+                  >
+                    <Image source={{ uri: b.logo }} style={tw`w-12 h-6 mr-3`} resizeMode="contain" />
+                    <View style={tw`flex-1`}>
+                      <Text style={tw`text-slate-800 font-bold text-sm`}>{b.shortName}</Text>
+                      <Text style={tw`text-slate-400 text-[10px]`} numberOfLines={1}>{b.name}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+          </Dialog.Content>
+          <Dialog.Actions style={tw`pb-4 pr-4`}>
+            <Button onPress={() => { setShowBankPicker(false); setBankSearch(""); }} labelStyle={tw`text-sky-500 font-bold`}>Đóng</Button>
+          </Dialog.Actions>
+        </Dialog>
+
         {/* Modal xem QR Code */}
         <Dialog visible={showQrModal} onDismiss={() => setShowQrModal(false)} style={tw`bg-white rounded-3xl`}>
           <Dialog.Title style={tw`text-center font-bold text-slate-800`}>Mã QR Nhận Tiền</Dialog.Title>
           <Dialog.Content style={tw`items-center py-4`}>
-            <View style={tw`w-52 h-52 bg-slate-50 border border-slate-200 rounded-2xl items-center justify-center mb-4`}>
-              <QrCode size={130} color="#0284c7" />
+            <View style={tw`w-52 h-52 bg-white border border-slate-100 rounded-2xl items-center justify-center mb-4 overflow-hidden shadow-sm`}>
+              <Image 
+                source={{ uri: `https://img.vietqr.io/image/${getVietQrBankCode(user?.bankName)}-${user?.bankAccount}-compact2.png?accountName=${encodeURIComponent(user?.fullName || "")}` }}
+                style={tw`w-full h-full`}
+                resizeMode="contain"
+              />
             </View>
             <Text style={tw`text-slate-800 font-bold text-base text-center mb-1`}>
               {user?.bankName} - {user?.bankAccount}
