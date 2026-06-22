@@ -7,7 +7,7 @@ import { fetchUserProfile, fetchHistoryExpenses, joinExpenseByCode } from "../se
 import { sendLocalNotification } from "../services/notifications";
 
 import { Text, FAB, Card, TextInput, Button } from "react-native-paper";
-import { Home, FileText, User, Plus } from "lucide-react-native";
+import { Home, FileText, User, Plus, Camera, Dices, PlusCircle } from "lucide-react-native";
 
 export default function HomeScreen({ onNavigate, currentUser }) {
   const [user, setUser] = useState(null);
@@ -17,6 +17,7 @@ export default function HomeScreen({ onNavigate, currentUser }) {
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [joinCode, setJoinCode] = useState("");
   const [joining, setJoining] = useState(false);
+  const [showAllExpenses, setShowAllExpenses] = useState(false);
 
   const handleJoinBill = async () => {
     if (!joinCode.trim()) {
@@ -27,7 +28,7 @@ export default function HomeScreen({ onNavigate, currentUser }) {
     try {
       const expense = await joinExpenseByCode(currentUser.id, joinCode);
       setJoinCode("");
-      
+
       // Gửi thông báo tham gia thành công
       sendLocalNotification(
         "Tham gia hóa đơn thành công! 📑",
@@ -38,9 +39,9 @@ export default function HomeScreen({ onNavigate, currentUser }) {
         "Thành công 🎉",
         `Bạn đã tham gia thành công hóa đơn "${expense.title}"!`,
         [
-          { 
-            text: "Xem chi tiết", 
-            onPress: () => onNavigate("billdetail", { billId: expense.id }) 
+          {
+            text: "Xem chi tiết",
+            onPress: () => onNavigate("billdetail", { billId: expense.id })
           }
         ]
       );
@@ -92,7 +93,7 @@ export default function HomeScreen({ onNavigate, currentUser }) {
   });
 
   const CATEGORY_FILTER_TABS = [
-    { id: "ALL", name: "Tất cả", icon: "📁" },
+    { id: "ALL", name: "Tất cả ", icon: "📁" },
     { id: "c1", name: "Ăn uống", icon: "🍔" },
     { id: "c2", name: "Du lịch", icon: "✈️" },
     { id: "c3", name: "Mua sắm", icon: "🛍️" },
@@ -114,11 +115,41 @@ export default function HomeScreen({ onNavigate, currentUser }) {
           user={user}
           totalToPay={user?.totalToPay || 0}
           totalToCollect={user?.totalToCollect || 0}
+          collectCount={expenses.filter(e => e.createdBy === currentUser?.id && e.status === "PARTIAL").length}
+          payCount={expenses.filter(e => e.createdBy !== currentUser?.id && e.status === "PARTIAL").length}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
         />
 
-        <Card style={tw`mx-4 mt-4 bg-white rounded-3xl p-4 shadow-sm border border-slate-100`}>
+        {/* Quick Actions Row */}
+        <View style={tw`mx-4 mt-6`}>
+          <Text style={tw`text-xs font-bold text-slate-400 mb-3`}>HÀNH ĐỘNG NHANH</Text>
+          <View style={tw`flex-row gap-3`}>
+            {/* Create Bill Action */}
+            <TouchableOpacity
+              onPress={() => onNavigate("createbill")}
+              style={tw`flex-1 bg-white border border-slate-100 rounded-3xl p-4 items-center justify-center shadow-sm`}
+            >
+              <View style={tw`w-10 h-10 rounded-2xl bg-sky-50 items-center justify-center mb-2`}>
+                <PlusCircle size={20} color="#0284c7" />
+              </View>
+              <Text style={tw`text-slate-700 font-bold text-[11px] text-center`}>Tạo Bill Mới</Text>
+            </TouchableOpacity>
+
+            {/* Scan Bill Action */}
+            <TouchableOpacity
+              onPress={() => onNavigate("createbill", { autoScan: true })}
+              style={tw`flex-1 bg-white border border-slate-100 rounded-3xl p-4 items-center justify-center shadow-sm`}
+            >
+              <View style={tw`w-10 h-10 rounded-2xl bg-emerald-50 items-center justify-center mb-2`}>
+                <Camera size={20} color="#059669" />
+              </View>
+              <Text style={tw`text-slate-700 font-bold text-[11px] text-center`}>Quét Bill</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <Card style={tw`mx-4 mt-6 bg-white rounded-3xl p-4 shadow-sm border border-slate-100`}>
           <Text style={tw`text-xs font-bold text-slate-400 mb-2`}>THAM GIA HÓA ĐƠN BẰNG MÃ</Text>
           <View style={tw`flex-row gap-2`}>
             <TextInput
@@ -154,9 +185,8 @@ export default function HomeScreen({ onNavigate, currentUser }) {
                 <TouchableOpacity
                   key={tab.id}
                   onPress={() => setSelectedCategory(tab.id)}
-                  style={tw`flex-row items-center border rounded-full px-4 py-2 ${
-                    isSelected ? "bg-sky-500 border-sky-500" : "bg-white border-slate-200"
-                  }`}
+                  style={tw`flex-row items-center border rounded-full px-4 py-2 ${isSelected ? "bg-sky-500 border-sky-500" : "bg-white border-slate-200"
+                    }`}
                 >
                   <Text style={tw`text-sm mr-1.5`}>{tab.icon}</Text>
                   <Text style={tw`text-xs font-bold ${isSelected ? "text-white" : "text-slate-600"}`}>
@@ -172,8 +202,10 @@ export default function HomeScreen({ onNavigate, currentUser }) {
           <View style={tw`flex-row justify-between items-center px-4 mb-3`}>
             <Text style={tw`text-base font-bold text-slate-800`}>Hóa đơn gần đây</Text>
             {filteredExpenses.length > 3 && (
-              <TouchableOpacity onPress={() => onNavigate("history")}>
-                <Text style={tw`text-sky-600 text-xs font-bold`}>Xem tất cả ({filteredExpenses.length})</Text>
+              <TouchableOpacity onPress={() => setShowAllExpenses(!showAllExpenses)}>
+                <Text style={tw`text-sky-600 text-xs font-bold`}>
+                  {showAllExpenses ? "Thu gọn" : `Xem tất cả (${filteredExpenses.length})`}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -185,10 +217,11 @@ export default function HomeScreen({ onNavigate, currentUser }) {
               </Text>
             </View>
           ) : (
-            filteredExpenses.slice(0, 3).map((expense) => (
+            (showAllExpenses ? filteredExpenses : filteredExpenses.slice(0, 3)).map((expense) => (
               <ExpenseCard
                 key={expense.id}
                 expense={expense}
+                currentUserId={currentUser?.id}
                 onPress={() => onNavigate("billdetail", { billId: expense.id })}
               />
             ))
