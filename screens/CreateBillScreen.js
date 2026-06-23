@@ -491,6 +491,18 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                 {
                   text: "Tôi hiểu rồi, chơi luôn!",
                   onPress: () => {
+                    // Phát nhạc vip.mp3 khi bắt đầu chuyển sang minigame
+                    Audio.Sound.createAsync(
+                      require("../assets/vip.mp3"),
+                      { shouldPlay: true }
+                    ).then(({ sound }) => {
+                      sound.setOnPlaybackStatusUpdate((status) => {
+                        if (status.didJustFinish) {
+                          sound.unloadAsync();
+                        }
+                      });
+                    }).catch((e) => console.log("Lỗi âm thanh:", e));
+
                     onNavigate("minigames", {
                       billMembers: members,
                       prevBillState: { title, expenseDate, categoryId, members, items, paidById, editBillId: routeParams?.editBillId }
