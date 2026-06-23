@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Provider as PaperProvider } from "react-native-paper";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import HomeScreen from "./screens/HomeScreen";
 import HistoryScreen from "./screens/HistoryScreen";
@@ -12,6 +13,7 @@ import ForgotPasswordScreen from "./screens/ForgotPasswordScreen";
 import CreateBillScreen from "./screens/CreateBillScreen";
 import MiniGamesScreen from "./screens/MiniGamesScreen";
 import { registerForPushNotificationsAsync } from "./services/notifications";
+import { Audio } from "expo-av";
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState("login");
@@ -20,6 +22,14 @@ export default function App() {
 
   useEffect(() => {
     registerForPushNotificationsAsync();
+    
+    // Cấu hình âm thanh phát ngay cả khi bật chế độ im lặng
+    Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      playsInSilentModeIOS: true,
+      shouldRouteThroughEarpieceAndroid: false,
+      staysActiveInBackground: false,
+    }).catch(err => console.log("Lỗi setAudioModeAsync:", err));
   }, []);
 
   const navigate = (screen, params = {}) => {
@@ -128,11 +138,13 @@ export default function App() {
   }
 
   return (
-    <PaperProvider>
-      <View style={{ flex: 1 }}>
-        {screenComponent}
-      </View>
-    </PaperProvider>
+    <SafeAreaProvider>
+      <PaperProvider>
+        <View style={{ flex: 1 }}>
+          {screenComponent}
+        </View>
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }
 
