@@ -20,25 +20,7 @@ const SLICE_COLORS = [
 export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }) {
   const [activeGame, setActiveGame] = useState("wheel"); // "wheel" or "dice"
   
-  useEffect(() => {
-    playSound();
-  }, []);
-
-  const playSound = async () => {
-    try {
-      const { sound } = await Audio.Sound.createAsync(
-        require("../assets/vip.mp3"),
-        { shouldPlay: true }
-      );
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.didJustFinish) {
-          sound.unloadAsync();
-        }
-      });
-    } catch (e) {
-      console.log("Lỗi âm thanh:", e);
-    }
-  };
+  const playSound = () => {};
   
   // Tự động đọc danh sách thành viên từ màn tạo hóa đơn gửi qua, hoặc dùng default mock list
   const [participants, setParticipants] = useState(() => {
