@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://192.168.137.1:9999";
+const API_BASE_URL = "http://192.168.0.102:9999";
 
 // Helper to format date
 const formatDate = (isoString) => {
@@ -613,7 +613,8 @@ export const scanReceiptOCR = async (base64Data) => {
   try {
     const formData = new FormData();
     formData.append("apikey", "helloworld");
-    formData.append("language", "vie");
+    formData.append("language", "vnm"); // Đổi sang 'vnm' theo quy định của OCR.space để tránh lỗi E201
+    formData.append("ocrEngine", "2");  // Sử dụng Engine 2 tối ưu cho tiếng Việt có dấu
     formData.append("isOverlayRequired", "false");
     formData.append("detectOrientation", "true");
     formData.append("scale", "true");
@@ -641,64 +642,87 @@ export const scanReceiptOCR = async (base64Data) => {
 export const parseOcrTextToItems = (ocrText) => {
   if (!ocrText) return [];
   const lines = ocrText.split(/\r?\n/);
-  const items = [];
-  let idCounter = 1;
+  const names = [];
+  const prices = [];
 
-  // Từ khóa bỏ qua (hóa đơn tổng, VAT, thuế, tiền mặt...)
+  // Từ khóa bỏ qua (hóa đơn tổng, địa chỉ, cửa hàng, thông tin hành chính...)
   const skipKeywords = [
     "tổng", "tong", "total", "vat", "thuế", "thue", 
     "tiền mặt", "tien mat", "cash", "thẻ", "card", 
     "chuyển khoản", "banking", "thối", "change", 
     "giảm giá", "giam gia", "discount", "khuyến mãi", 
     "khuyen mai", "km", "nợ cũ", "no cu", "thành tiền", 
-    "thanh tien", "subtotal", "cộng", "cong"
+    "thanh tien", "subtotal", "cộng", "cong",
+    "khách phải trả", "khach phai tra", "phải trả", "phai tra",
+    "thanh toán", "thanh toan", "tiền hàng", "tien hang",
+    "sl", "đg", "ck", "t.tiền", "t.tien", "ngày bán", "ngay ban",
+    "siêu thị", "sieu thi", "chợ", "cho", "địa chỉ", "dia chi", "tp hà nội", "tp ha noi",
+    "điện thoại", "dien thoai", "đt:", "tel:", "phone:", "hóa đơn", "hoa don",
+    "ngày", "ngay", "giờ", "gio", "nhân viên", "nhan vien", "thu ngân", "thu ngan",
+    "quầy", "quay", "khách hàng", "khach hang", "khách lẻ", "khach le",
+    "ghé là mê", "ghe la me"
   ];
 
-  for (let line of lines) {
-    line = line.trim();
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim();
     if (!line) continue;
 
-    // Kiểm tra xem dòng này có chứa từ khóa bỏ qua không
     const lowerLine = line.toLowerCase();
     const shouldSkip = skipKeywords.some(keyword => lowerLine.includes(keyword));
     if (shouldSkip) continue;
 
     // Tìm số tiền ở cuối dòng
-    // Match số tiền như: 150.000, 150,000, 150000, 150k, 150 vnd
-    const priceRegex = /(\d+[\d.,\s]*)\s*(k|đ|đ.|d|vnd|vnd.)?\s*$/i;
+    const priceRegex = /\b(\d+[\d.,]*)\s*(k|đ|đ.|d|vnd|vnd.)?\s*$/i;
     const match = line.match(priceRegex);
 
     if (match) {
       const rawPrice = match[1];
       const suffix = match[2] ? match[2].toLowerCase() : "";
 
-      // Làm sạch giá trị số tiền
       let cleanedPriceStr = rawPrice.replace(/[.,\s]/g, "");
       let price = parseFloat(cleanedPriceStr) || 0;
 
-      // Xử lý hậu tố 'k' (ví dụ: 150k -> 150,000)
       if (suffix === "k") {
         price = price * 1000;
       }
 
-      // Trích xuất tên món
       const namePart = line.substring(0, line.lastIndexOf(match[0])).trim();
-      
-      // Loại bỏ ký tự phân cách ở đầu/cuối tên món
       let cleanName = namePart.replace(/^[\s\d.\-#*+]+/g, ""); // bỏ số thứ tự
       cleanName = cleanName.replace(/[:\-+=._~]+$/g, "").trim();
 
-      // Nếu tên món hợp lệ và giá tiền hợp lý (> 1000đ)
-      if (cleanName && cleanName.length >= 2 && price >= 1000) {
-        items.push({
-          id: idCounter.toString(),
-          name: cleanName,
-          price: price.toString(),
-          sharedWith: [] // người dùng sẽ chọn người ăn
-        });
-        idCounter++;
+      const hasLetters = /[a-zA-Z\u00C0-\u024F\u1E00-\u1EFF]/.test(cleanName);
+      const hasLongNum = /\d{4,}/.test(cleanName.replace(/[.,\s]/g, ""));
+
+      // Chỉ chấp nhận giá từ 1,000đ đến 10,000,000đ để lọc bỏ số điện thoại, số tài khoản...
+      if (price >= 1000 && price <= 10000000) {
+        prices.push(price);
+        if (hasLetters && cleanName.length >= 2 && !hasLongNum) {
+          names.push(cleanName);
+        }
+      }
+    } else {
+      // Dòng không chứa giá tiền ở cuối, kiểm tra xem có phải tên món không
+      let cleanName = line.replace(/^[\s\d.\-#*+]+/g, ""); // bỏ số thứ tự
+      cleanName = cleanName.replace(/[:\-+=._~]+$/g, "").trim();
+      const hasLetters = /[a-zA-Z\u00C0-\u024F\u1E00-\u1EFF]/.test(cleanName);
+      const hasLongNum = /\d{4,}/.test(cleanName.replace(/[.,\s]/g, ""));
+
+      if (hasLetters && cleanName.length >= 2 && !hasLongNum) {
+        names.push(cleanName);
       }
     }
+  }
+
+  // Ghép cặp tên và giá theo chỉ số
+  const items = [];
+  const minLength = Math.min(names.length, prices.length);
+  for (let i = 0; i < minLength; i++) {
+    items.push({
+      id: (i + 1).toString(),
+      name: names[i],
+      price: prices[i].toString(),
+      sharedWith: []
+    });
   }
 
   return items;
