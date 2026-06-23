@@ -125,6 +125,22 @@
       "status": "ACTIVE",
       "createdAt": "2026-06-22T09:32:26.433Z",
       "updatedAt": "2026-06-22T09:32:26.433Z"
+    },
+    {
+      "id": "u_d7gzn4ix4",
+      "username": "USR4093",
+      "fullName": "Mạnh",
+      "email": "u_d7gzn4ix4@sharebill.com",
+      "phone": "0899821764",
+      "password": "123456",
+      "avatar": "https://example.com/avatar_default.jpg",
+      "bankName": "TCB",
+      "bankAccount": "7417062004",
+      "qrCode": "USER_USR4093",
+      "bio": "Active Share Bill member",
+      "status": "ACTIVE",
+      "createdAt": "2026-06-23T06:28:50.711Z",
+      "updatedAt": "2026-06-23T06:28:50.711Z"
     }
   ],
   "groups": [
@@ -568,6 +584,50 @@
       "createdAt": "2026-06-22T17:46:49.923Z",
       "updatedAt": "2026-06-22T17:46:49.923Z",
       "categoryId": "c1"
+    },
+    {
+      "id": "e_pz0jg4n8r",
+      "billCode": "BILL-XUP6",
+      "groupId": "g1",
+      "title": "avc",
+      "totalAmount": 41000,
+      "paidBy": "u_d7gzn4ix4",
+      "splitMethod": "ITEMIZED",
+      "expenseDate": "2026-06-23T06:30",
+      "items": [
+        {
+          "id": "item_1",
+          "name": "KEM ỐC QUÊ MERINO TEEN DÂU",
+          "price": 13000,
+          "sharedWith": [
+            "u_d7gzn4ix4",
+            "u3"
+          ]
+        },
+        {
+          "id": "item_2",
+          "name": "KEM MOCHI MERINO ĐẬU ĐỎ",
+          "price": 21000,
+          "sharedWith": [
+            "u_d7gzn4ix4",
+            "u3"
+          ]
+        },
+        {
+          "id": "item_3",
+          "name": "KEM MOCHI JOYDAY STRAWSEERY 45ML",
+          "price": 7000,
+          "sharedWith": [
+            "u_d7gzn4ix4",
+            "u3"
+          ]
+        }
+      ],
+      "status": "ACTIVE",
+      "createdBy": "u_d7gzn4ix4",
+      "createdAt": "2026-06-23T06:33:14.768Z",
+      "updatedAt": "2026-06-23T06:33:14.768Z",
+      "categoryId": "c1"
     }
   ],
   "expenseParticipants": [
@@ -894,6 +954,26 @@
     {
       "id": "ep_ivmadwbns",
       "expenseId": "e_74hc1g2iy",
+      "userId": "u3",
+      "owedAmount": 20500,
+      "paidAmount": 0,
+      "remainingAmount": 20500,
+      "isSettled": false,
+      "settledAt": null
+    },
+    {
+      "id": "ep_bp43hf68d",
+      "expenseId": "e_pz0jg4n8r",
+      "userId": "u_d7gzn4ix4",
+      "owedAmount": 20500,
+      "paidAmount": 41000,
+      "remainingAmount": 0,
+      "isSettled": true,
+      "settledAt": "2026-06-23T06:33:14.884Z"
+    },
+    {
+      "id": "ep_8nahmh0l3",
+      "expenseId": "e_pz0jg4n8r",
       "userId": "u3",
       "owedAmount": 20500,
       "paidAmount": 0,

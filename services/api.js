@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://192.168.0.102:9999";
+const API_BASE_URL = "http://192.168.137.1:9999";
 
 // Helper to format date
 const formatDate = (isoString) => {
@@ -120,7 +120,10 @@ export const loginUser = async (phone, password) => {
     }
     return user;
   } catch (error) {
-    if (error.message !== "Số điện thoại không tồn tại!" && error.message !== "Mật khẩu không chính xác!") {
+    if (
+      error.message !== "Số điện thoại không tồn tại!" &&
+      error.message !== "Mật khẩu không chính xác!"
+    ) {
       console.error("Lỗi hệ thống loginUser:", error);
     }
     throw error;
@@ -132,7 +135,9 @@ export const registerUser = async (userData) => {
   try {
     const cleanPhone = (userData.phone || "").trim();
     // Kiểm tra số điện thoại đã tồn tại chưa
-    const checkPhoneRes = await axios.get(`${API_BASE_URL}/users?phone=${cleanPhone}`);
+    const checkPhoneRes = await axios.get(
+      `${API_BASE_URL}/users?phone=${cleanPhone}`,
+    );
     if (checkPhoneRes.data && checkPhoneRes.data.length > 0) {
       throw new Error("Số điện thoại này đã được đăng ký!");
     }
@@ -574,11 +579,11 @@ export const deleteExpense = async (expenseId) => {
 
     // 2. Delete participants associated with this expense
     const partsRes = await axios.get(
-      `${API_BASE_URL}/expenseParticipants?expenseId=${expenseId}`
+      `${API_BASE_URL}/expenseParticipants?expenseId=${expenseId}`,
     );
     const parts = partsRes.data;
-    const deletePromises = parts.map(p =>
-      axios.delete(`${API_BASE_URL}/expenseParticipants/${p.id}`)
+    const deletePromises = parts.map((p) =>
+      axios.delete(`${API_BASE_URL}/expenseParticipants/${p.id}`),
     );
     await Promise.all(deletePromises);
   } catch (error) {
@@ -599,7 +604,7 @@ export const resetUserPassword = async (phone, newPassword) => {
     const user = users[0];
     const updateRes = await axios.patch(`${API_BASE_URL}/users/${user.id}`, {
       password: newPassword,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     });
     return updateRes.data;
   } catch (error) {
@@ -614,23 +619,33 @@ export const scanReceiptOCR = async (base64Data) => {
     const formData = new FormData();
     formData.append("apikey", "helloworld");
     formData.append("language", "vnm"); // Đổi sang 'vnm' theo quy định của OCR.space để tránh lỗi E201
-    formData.append("ocrEngine", "2");  // Sử dụng Engine 2 tối ưu cho tiếng Việt có dấu
+    formData.append("ocrEngine", "2"); // Sử dụng Engine 2 tối ưu cho tiếng Việt có dấu
     formData.append("isOverlayRequired", "false");
     formData.append("detectOrientation", "true");
     formData.append("scale", "true");
     formData.append("base64Image", `data:image/jpeg;base64,${base64Data}`);
 
-    const response = await axios.post("https://api.ocr.space/parse/image", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
+    const response = await axios.post(
+      "https://api.ocr.space/parse/image",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       },
-    });
+    );
 
-    if (response.data && response.data.ParsedResults && response.data.ParsedResults.length > 0) {
+    if (
+      response.data &&
+      response.data.ParsedResults &&
+      response.data.ParsedResults.length > 0
+    ) {
       const parsedText = response.data.ParsedResults[0].ParsedText;
       return parsedText;
     } else {
-      throw new Error(response.data.ErrorMessage || "Không thể đọc văn bản từ hóa đơn.");
+      throw new Error(
+        response.data.ErrorMessage || "Không thể đọc văn bản từ hóa đơn.",
+      );
     }
   } catch (error) {
     console.error("Lỗi scanReceiptOCR:", error);
@@ -647,20 +662,80 @@ export const parseOcrTextToItems = (ocrText) => {
 
   // Từ khóa bỏ qua (hóa đơn tổng, địa chỉ, cửa hàng, thông tin hành chính...)
   const skipKeywords = [
-    "tổng", "tong", "total", "vat", "thuế", "thue", 
-    "tiền mặt", "tien mat", "cash", "thẻ", "card", 
-    "chuyển khoản", "banking", "thối", "change", 
-    "giảm giá", "giam gia", "discount", "khuyến mãi", 
-    "khuyen mai", "km", "nợ cũ", "no cu", "thành tiền", 
-    "thanh tien", "subtotal", "cộng", "cong",
-    "khách phải trả", "khach phai tra", "phải trả", "phai tra",
-    "thanh toán", "thanh toan", "tiền hàng", "tien hang",
-    "sl", "đg", "ck", "t.tiền", "t.tien", "ngày bán", "ngay ban",
-    "siêu thị", "sieu thi", "chợ", "cho", "địa chỉ", "dia chi", "tp hà nội", "tp ha noi",
-    "điện thoại", "dien thoai", "đt:", "tel:", "phone:", "hóa đơn", "hoa don",
-    "ngày", "ngay", "giờ", "gio", "nhân viên", "nhan vien", "thu ngân", "thu ngan",
-    "quầy", "quay", "khách hàng", "khach hang", "khách lẻ", "khach le",
-    "ghé là mê", "ghe la me"
+    "tổng",
+    "tong",
+    "total",
+    "vat",
+    "thuế",
+    "thue",
+    "tiền mặt",
+    "tien mat",
+    "cash",
+    "thẻ",
+    "card",
+    "chuyển khoản",
+    "banking",
+    "thối",
+    "change",
+    "giảm giá",
+    "giam gia",
+    "discount",
+    "khuyến mãi",
+    "khuyen mai",
+    "km",
+    "nợ cũ",
+    "no cu",
+    "thành tiền",
+    "thanh tien",
+    "subtotal",
+    "cộng",
+    "cong",
+    "khách phải trả",
+    "khach phai tra",
+    "phải trả",
+    "phai tra",
+    "thanh toán",
+    "thanh toan",
+    "tiền hàng",
+    "tien hang",
+    "sl",
+    "đg",
+    "ck",
+    "t.tiền",
+    "t.tien",
+    "ngày bán",
+    "ngay ban",
+    "siêu thị",
+    "sieu thi",
+    "chợ",
+    "cho",
+    "địa chỉ",
+    "dia chi",
+    "tp hà nội",
+    "tp ha noi",
+    "điện thoại",
+    "dien thoai",
+    "đt:",
+    "tel:",
+    "phone:",
+    "hóa đơn",
+    "hoa don",
+    "ngày",
+    "ngay",
+    "giờ",
+    "gio",
+    "nhân viên",
+    "nhan vien",
+    "thu ngân",
+    "thu ngan",
+    "quầy",
+    "quay",
+    "khách hàng",
+    "khach hang",
+    "khách lẻ",
+    "khach le",
+    "ghé là mê",
+    "ghe la me",
   ];
 
   for (let i = 0; i < lines.length; i++) {
@@ -668,7 +743,9 @@ export const parseOcrTextToItems = (ocrText) => {
     if (!line) continue;
 
     const lowerLine = line.toLowerCase();
-    const shouldSkip = skipKeywords.some(keyword => lowerLine.includes(keyword));
+    const shouldSkip = skipKeywords.some((keyword) =>
+      lowerLine.includes(keyword),
+    );
     if (shouldSkip) continue;
 
     // Tìm số tiền ở cuối dòng
@@ -721,7 +798,7 @@ export const parseOcrTextToItems = (ocrText) => {
       id: (i + 1).toString(),
       name: names[i],
       price: prices[i].toString(),
-      sharedWith: []
+      sharedWith: [],
     });
   }
 
