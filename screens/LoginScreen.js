@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   View,
   SafeAreaView,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
@@ -12,7 +11,6 @@ import { TextInput, Button, Text, HelperText } from "react-native-paper";
 import { Phone, Lock, Eye, EyeOff, Sparkles } from "lucide-react-native";
 import tw from "twrnc";
 import { loginUser } from "../services/api";
-
 import { sendLocalNotification } from "../services/notifications";
 
 export default function LoginScreen({ onNavigate, setCurrentUser }) {
@@ -22,11 +20,37 @@ export default function LoginScreen({ onNavigate, setCurrentUser }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+
+  const isPhoneInvalid = () => {
+    if (!phone) return false;
+    const regex = /^(0[3|5|7|8|9])[0-9]{8}$/;
+    return !regex.test(phone.trim());
+  };
+
+  const isPasswordInvalid = () => {
+    if (!password) return false;
+    return password.length < 6;
+  };
+
   const handleLogin = async () => {
+    setPhoneTouched(true);
+    setPasswordTouched(true);
+
     if (!phone || !password) {
       setErrorMsg("Vui lòng điền đầy đủ thông tin!");
       return;
     }
+    if (isPhoneInvalid()) {
+      setErrorMsg("Số điện thoại không đúng định dạng!");
+      return;
+    }
+    if (isPasswordInvalid()) {
+      setErrorMsg("Mật khẩu phải có ít nhất 6 ký tự!");
+      return;
+    }
+
     setErrorMsg("");
     setLoading(true);
     try {
@@ -84,15 +108,15 @@ export default function LoginScreen({ onNavigate, setCurrentUser }) {
             ) : null}
 
             {/* Phone Input */}
-            <View style={tw`mb-4`}>
+            <View style={tw`mb-2`}>
               <TextInput
                 label="Số điện thoại"
                 value={phone}
-                onChangeText={setPhone}
+                onChangeText={(val) => { setPhone(val); setPhoneTouched(true); }}
                 keyboardType="phone-pad"
                 mode="outlined"
-                outlineColor="#e2e8f0"
-                activeOutlineColor="#0ea5e9"
+                outlineColor={phoneTouched && isPhoneInvalid() ? "#ef4444" : "#e2e8f0"}
+                activeOutlineColor={phoneTouched && isPhoneInvalid() ? "#ef4444" : "#0ea5e9"}
                 style={tw`bg-white text-slate-700`}
                 left={
                   <TextInput.Icon
@@ -100,18 +124,21 @@ export default function LoginScreen({ onNavigate, setCurrentUser }) {
                   />
                 }
               />
+              <HelperText type="error" visible={phoneTouched && isPhoneInvalid()} style={tw`text-xs -mt-1`}>
+                Số điện thoại không hợp lệ (gồm 10 số và bắt đầu bằng 03/05/07/08/09).
+              </HelperText>
             </View>
 
             {/* Password Input */}
-            <View style={tw`mb-6`}>
+            <View style={tw`mb-4`}>
               <TextInput
                 label="Mật khẩu"
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(val) => { setPassword(val); setPasswordTouched(true); }}
                 secureTextEntry={secureText}
                 mode="outlined"
-                outlineColor="#e2e8f0"
-                activeOutlineColor="#0ea5e9"
+                outlineColor={passwordTouched && isPasswordInvalid() ? "#ef4444" : "#e2e8f0"}
+                activeOutlineColor={passwordTouched && isPasswordInvalid() ? "#ef4444" : "#0ea5e9"}
                 style={tw`bg-white text-slate-700`}
                 left={
                   <TextInput.Icon
@@ -134,6 +161,9 @@ export default function LoginScreen({ onNavigate, setCurrentUser }) {
                   />
                 }
               />
+              <HelperText type="error" visible={passwordTouched && isPasswordInvalid()} style={tw`text-xs -mt-1`}>
+                Mật khẩu phải có ít nhất 6 ký tự.
+              </HelperText>
             </View>
 
             {/* Forgot Password Link */}
@@ -151,7 +181,7 @@ export default function LoginScreen({ onNavigate, setCurrentUser }) {
               loading={loading}
               disabled={loading}
               contentStyle={tw`h-13`}
-              style={tw`rounded-2xl bg-sky-500 shadow-md shadow-sky-500/20`}
+              style={tw`w-full rounded-2xl bg-sky-500 shadow-md shadow-sky-500/20`}
               labelStyle={tw`text-base font-bold text-white`}
             >
               Đăng nhập

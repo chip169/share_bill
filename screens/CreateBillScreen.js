@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { View, SafeAreaView, ScrollView, TouchableOpacity, Alert, StyleSheet } from "react-native";
+import { View, SafeAreaView, ScrollView, TouchableOpacity, Alert, StyleSheet, Image, Modal, PanResponder } from "react-native";
 import { TextInput, Button, Text, Card, Checkbox, IconButton, Portal, Dialog, ActivityIndicator } from "react-native-paper";
-import { ChevronLeft, Plus, Trash2, Search, UserPlus, Calendar, ChevronDown, ChevronUp, Camera } from "lucide-react-native";
+import { ChevronLeft, Plus, Trash2, Search, UserPlus, Calendar, ChevronDown, ChevronUp, Camera, Check } from "lucide-react-native";
 import tw from "twrnc";
 import { searchUserByUsername, createExpense, updateExpense, fetchBillDetail, scanReceiptOCR, parseOcrTextToItems } from "../services/api";
 import { Audio } from "expo-av";
 import { sendLocalNotification } from "../services/notifications";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import { LinearGradient } from "expo-linear-gradient";
 
 const CATEGORIES = [
@@ -23,19 +24,202 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
   const [categoryId, setCategoryId] = useState(routeParams?.categoryId || "c1");
 
   // Members list, prefilled with current logged-in user
-  const [members, setMembers] = useState(routeParams?.members || []);
+  const [members, setMembers] = useState(() => {
+    if (routeParams?.members && routeParams.members.length > 0) {
+      return routeParams.members;
+    }
+    if (currentUser) {
+      return [{
+        id: currentUser.id,
+        fullName: currentUser.fullName,
+        username: currentUser.username || `USR${currentUser.id.toUpperCase()}`
+      }];
+    }
+    return [];
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
 
-  // Items list: starts with one empty item
-  const [items, setItems] = useState(routeParams?.items || [
-    { id: "1", name: "", price: "", sharedWith: [] }
-  ]);
+  // Items list: starts with one empty item prefilled with all members selected
+  const [items, setItems] = useState(() => {
+    if (routeParams?.items && routeParams.items.length > 0) {
+      return routeParams.items.map(item => ({
+        ...item,
+        quantity: (item.quantity || 1).toString()
+      }));
+    }
+    const initialMembers = routeParams?.members || [];
+    const initialIds = initialMembers.map(m => m.id);
+    if (currentUser && !initialIds.includes(currentUser.id)) {
+      initialIds.push(currentUser.id);
+    }
+    return [
+      { id: "1", name: "", price: "", quantity: "1", sharedWith: initialIds }
+    ];
+  });
 
   const [paidById, setPaidById] = useState(routeParams?.paidById || routeParams?.prevBillState?.paidById || currentUser?.id);
   const [expandedItemId, setExpandedItemId] = useState("1");
   const [scanning, setScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState("");
+
+  // Crop image states
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [cropImageUri, setCropImageUri] = useState("");
+  const [cropImageWidth, setCropImageWidth] = useState(0);
+  const [cropImageHeight, setCropImageHeight] = useState(0);
+  const [boxWidth, setBoxWidth] = useState(200);
+  const [boxHeight, setBoxHeight] = useState(280);
+  const [boxX, setBoxX] = useState(30);
+  const [boxY, setBoxY] = useState(40);
+
+  const boxXRef = React.useRef(30);
+  const boxYRef = React.useRef(40);
+  const boxWidthRef = React.useRef(200);
+  const boxHeightRef = React.useRef(280);
+
+  // Sync refs to avoid stale closures in PanResponder
+  React.useEffect(() => {
+    boxXRef.current = boxX;
+    boxYRef.current = boxY;
+    boxWidthRef.current = boxWidth;
+    boxHeightRef.current = boxHeight;
+  }, [boxX, boxY, boxWidth, boxHeight]);
+
+  const dragStartXRef = React.useRef(0);
+  const dragStartYRef = React.useRef(0);
+
+  const panResponder = React.useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        dragStartXRef.current = boxXRef.current;
+        dragStartYRef.current = boxYRef.current;
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        const nextX = dragStartXRef.current + gestureState.dx;
+        const nextY = dragStartYRef.current + gestureState.dy;
+        const maxX = 260 - boxWidthRef.current;
+        const maxY = 360 - boxHeightRef.current;
+        setBoxX(Math.min(maxX, Math.max(0, nextX)));
+        setBoxY(Math.min(maxY, Math.max(0, nextY)));
+      },
+    })
+  ).current;
+
+  const startBoxXRef = React.useRef(0);
+  const startBoxYRef = React.useRef(0);
+  const startBoxWRef = React.useRef(0);
+  const startBoxHRef = React.useRef(0);
+
+  // TL Handle PanResponder
+  const panTL = React.useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        startBoxXRef.current = boxXRef.current;
+        startBoxYRef.current = boxYRef.current;
+        startBoxWRef.current = boxWidthRef.current;
+        startBoxHRef.current = boxHeightRef.current;
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        const proposedX = startBoxXRef.current + gestureState.dx;
+        const proposedY = startBoxYRef.current + gestureState.dy;
+        const limitX = startBoxXRef.current + startBoxWRef.current - 50;
+        const limitY = startBoxYRef.current + startBoxHRef.current - 50;
+        
+        const newX = Math.min(limitX, Math.max(0, proposedX));
+        const newY = Math.min(limitY, Math.max(0, proposedY));
+        
+        const newW = startBoxWRef.current + (startBoxXRef.current - newX);
+        const newH = startBoxHRef.current + (startBoxYRef.current - newY);
+        
+        setBoxX(newX);
+        setBoxY(newY);
+        setBoxWidth(newW);
+        setBoxHeight(newH);
+      }
+    })
+  ).current;
+
+  // TR Handle PanResponder
+  const panTR = React.useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        startBoxXRef.current = boxXRef.current;
+        startBoxYRef.current = boxYRef.current;
+        startBoxWRef.current = boxWidthRef.current;
+        startBoxHRef.current = boxHeightRef.current;
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        const proposedY = startBoxYRef.current + gestureState.dy;
+        const limitY = startBoxYRef.current + startBoxHRef.current - 50;
+        const newY = Math.min(limitY, Math.max(0, proposedY));
+        const newH = startBoxHRef.current + (startBoxYRef.current - newY);
+        
+        const proposedW = startBoxWRef.current + gestureState.dx;
+        const newW = Math.min(260 - startBoxXRef.current, Math.max(50, proposedW));
+        
+        setBoxY(newY);
+        setBoxHeight(newH);
+        setBoxWidth(newW);
+      }
+    })
+  ).current;
+
+  // BL Handle PanResponder
+  const panBL = React.useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        startBoxXRef.current = boxXRef.current;
+        startBoxYRef.current = boxYRef.current;
+        startBoxWRef.current = boxWidthRef.current;
+        startBoxHRef.current = boxHeightRef.current;
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        const proposedX = startBoxXRef.current + gestureState.dx;
+        const limitX = startBoxXRef.current + startBoxWRef.current - 50;
+        const newX = Math.min(limitX, Math.max(0, proposedX));
+        const newW = startBoxWRef.current + (startBoxXRef.current - newX);
+        
+        const proposedH = startBoxHRef.current + gestureState.dy;
+        const newH = Math.min(360 - startBoxYRef.current, Math.max(50, proposedH));
+        
+        setBoxX(newX);
+        setBoxWidth(newW);
+        setBoxHeight(newH);
+      }
+    })
+  ).current;
+
+  // BR Handle PanResponder
+  const panBR = React.useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        startBoxXRef.current = boxXRef.current;
+        startBoxYRef.current = boxYRef.current;
+        startBoxWRef.current = boxWidthRef.current;
+        startBoxHRef.current = boxHeightRef.current;
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        const proposedW = startBoxWRef.current + gestureState.dx;
+        const proposedH = startBoxHRef.current + gestureState.dy;
+        const newW = Math.min(260 - startBoxXRef.current, Math.max(50, proposedW));
+        const newH = Math.min(360 - startBoxYRef.current, Math.max(50, proposedH));
+        
+        setBoxWidth(newW);
+        setBoxHeight(newH);
+      }
+    })
+  ).current;
 
   // Load bill data in edit mode
   useEffect(() => {
@@ -63,6 +247,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
             id: item.id || (idx + 1).toString(),
             name: item.name,
             price: item.price.toString(),
+            quantity: (item.quantity || 1).toString(),
             sharedWith: item.sharedWith || []
           }));
           setItems(mappedItems);
@@ -75,26 +260,13 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
     }
   }, [routeParams?.editBillId, isEditMode]);
 
-  // Set current date on load and prefill creator as member
+  // Set current date on load
   useEffect(() => {
     if (isEditMode) return;
-    if (!routeParams?.members) {
-      const now = new Date();
-      const isoString = now.toISOString().slice(0, 16); // e.g. "2026-06-17T16:32"
-      setExpenseDate(isoString);
-
-      if (currentUser) {
-        setMembers([{
-          id: currentUser.id,
-          fullName: currentUser.fullName,
-          username: currentUser.username || `USR${currentUser.id.toUpperCase()}`
-        }]);
-        // Auto tag current user in the first item
-        setItems([{ id: "1", name: "", price: "", sharedWith: [currentUser.id] }]);
-        setPaidById(currentUser.id);
-      }
-    }
-  }, [currentUser, routeParams, isEditMode]);
+    const now = new Date();
+    const isoString = now.toISOString().slice(0, 16); // e.g. "2026-06-17T16:32"
+    setExpenseDate(isoString);
+  }, [isEditMode]);
 
   // Kích hoạt tự động quét hóa đơn nếu đi từ nút hành động nhanh ở trang chủ
   useEffect(() => {
@@ -161,12 +333,16 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
         if (members.some((m) => m.id === foundUser.id)) {
           Alert.alert("Thông báo", "Người dùng này đã có trong danh sách thành viên!");
         } else {
-          const newMember = {
+           const newMember = {
             id: foundUser.id,
             fullName: foundUser.fullName,
             username: foundUser.username || `USR${foundUser.id.toUpperCase()}`
           };
           setMembers([...members, newMember]);
+          setItems(prevItems => prevItems.map(item => ({
+            ...item,
+            sharedWith: [...item.sharedWith, foundUser.id]
+          })));
           setSearchQuery("");
         }
       } else {
@@ -187,7 +363,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
     const allIds = members.map((m) => m.id);
     setItems([
       ...items,
-      { id: newId, name: "", price: "", sharedWith: allIds }
+      { id: newId, name: "", price: "", quantity: "1", sharedWith: allIds }
     ]);
     setExpandedItemId(newId);
   };
@@ -228,6 +404,28 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
     );
   };
 
+  const handleSelectAll = (itemId) => {
+    setItems(
+      items.map((item) => {
+        if (item.id === itemId) {
+          return { ...item, sharedWith: members.map((m) => m.id) };
+        }
+        return item;
+      })
+    );
+  };
+
+  const handleDeselectAll = (itemId) => {
+    setItems(
+      items.map((item) => {
+        if (item.id === itemId) {
+          return { ...item, sharedWith: [] };
+        }
+        return item;
+      })
+    );
+  };
+
   // Trình chọn ảnh và quét hóa đơn OCR
   const handleScanBill = () => {
     Alert.alert(
@@ -258,9 +456,8 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
       let result;
       const pickerOptions = {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 0.8,
-        base64: true, // Yêu cầu chuỗi base64 để gửi qua API OCR
+        allowsEditing: false,
+        quality: 1.0,
       };
 
       if (type === "camera") {
@@ -272,16 +469,61 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
       if (result.canceled) return;
 
       const asset = result.assets[0];
-      if (!asset.base64) {
-        Alert.alert("Lỗi", "Không thể lấy dữ liệu hình ảnh dạng base64.");
+      setCropImageUri(asset.uri);
+      setCropImageWidth(asset.width);
+      setCropImageHeight(asset.height);
+      setBoxWidth(200);
+      setBoxHeight(280);
+      setBoxX(30);
+      setBoxY(40);
+      setShowCropModal(true);
+    } catch (e) {
+      console.log(e);
+      Alert.alert("Lỗi", "Không thể chọn hình ảnh. Vui lòng thử lại!");
+    }
+  };
+
+  const handleConfirmCrop = async () => {
+    setShowCropModal(false);
+    setScanning(true);
+    setScanStatus("Đang xử lý cắt ảnh...");
+
+    try {
+      // Map crop box viewport coordinates (260x360) back to original image percentage bounds
+      const cropLeft = boxX / 260;
+      const cropTop = boxY / 360;
+      const cropRight = (boxX + boxWidth) / 260;
+      const cropBottom = (boxY + boxHeight) / 360;
+
+      const originX = Math.round(cropLeft * cropImageWidth);
+      const originY = Math.round(cropTop * cropImageHeight);
+      const width = Math.round((cropRight - cropLeft) * cropImageWidth);
+      const height = Math.round((cropBottom - cropTop) * cropImageHeight);
+
+      // Call ImageManipulator to crop
+      const cropResult = await ImageManipulator.manipulateAsync(
+        cropImageUri,
+        [
+          {
+            crop: {
+              originX: Math.max(0, originX),
+              originY: Math.max(0, originY),
+              width: Math.min(cropImageWidth - originX, width),
+              height: Math.min(cropImageHeight - originY, height)
+            }
+          }
+        ],
+        { base64: true, format: ImageManipulator.SaveFormat.JPEG, quality: 0.8 }
+      );
+
+      if (!cropResult.base64) {
+        Alert.alert("Lỗi", "Không thể trích xuất dữ liệu ảnh sau khi cắt.");
+        setScanning(false);
         return;
       }
 
-      setScanning(true);
-      setScanStatus("Đang gửi ảnh lên máy chủ OCR...");
-
-      // Gọi API bóc tách text
-      const parsedText = await scanReceiptOCR(asset.base64);
+      setScanStatus("Đang gửi ảnh đã cắt lên máy chủ OCR...");
+      const parsedText = await scanReceiptOCR(cropResult.base64);
 
       setScanStatus("AI đang phân tích tên món & giá tiền...");
       const extractedItems = parseOcrTextToItems(parsedText);
@@ -289,7 +531,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
       if (extractedItems.length === 0) {
         Alert.alert(
           "Kết quả quét ⚠️", 
-          "Không nhận diện được tên món ăn / giá tiền cụ thể nào từ ảnh. Vui lòng chụp ảnh cận cảnh hóa đơn rõ nét hơn!"
+          "Không nhận diện được tên món ăn / giá tiền cụ thể nào từ ảnh đã cắt. Vui lòng di chuyển hoặc phóng to khung lưới tới vùng chữ rõ nét hơn!"
         );
       } else {
         // Tag toàn bộ thành viên hiện tại vào các món mới
@@ -350,11 +592,13 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
 
     items.forEach((item) => {
       const price = parseFloat(item.price) || 0;
-      totalAmount += price;
+      const qty = parseFloat(item.quantity) || 1;
+      const itemCost = price * qty;
+      totalAmount += itemCost;
 
       const count = item.sharedWith.length;
       if (count > 0) {
-        const share = price / count;
+        const share = itemCost / count;
         item.sharedWith.forEach((userId) => {
           if (memberShares[userId] !== undefined) {
             memberShares[userId] += share;
@@ -403,6 +647,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
         id: `item_${idx + 1}`,
         name: item.name.trim(),
         price: parseFloat(item.price),
+        quantity: parseFloat(item.quantity) || 1,
         sharedWith: item.sharedWith
       }));
 
@@ -457,7 +702,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
       {/* Top Header */}
       <LinearGradient
-        colors={["#0f172a", "#1e293b", "#0ea5e9"]}
+        colors={["#0369a1", "#0ea5e9"]} // Unified premium Sky Blue gradient
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={tw`flex-row items-center justify-between px-4 py-4 shadow-sm rounded-b-2xl`}
@@ -491,18 +736,6 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                 {
                   text: "Tôi hiểu rồi, chơi luôn!",
                   onPress: () => {
-                    // Phát nhạc vip.mp3 khi bắt đầu chuyển sang minigame
-                    Audio.Sound.createAsync(
-                      require("../assets/vip.mp3"),
-                      { shouldPlay: true }
-                    ).then(({ sound }) => {
-                      sound.setOnPlaybackStatusUpdate((status) => {
-                        if (status.didJustFinish) {
-                          sound.unloadAsync();
-                        }
-                      });
-                    }).catch((e) => console.log("Lỗi âm thanh:", e));
-
                     onNavigate("minigames", {
                       billMembers: members,
                       prevBillState: { title, expenseDate, categoryId, members, items, paidById, editBillId: routeParams?.editBillId }
@@ -635,16 +868,16 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
 
         {/* Items Section */}
         <View style={tw`mx-4`}>
-          <View style={tw`flex-row justify-between items-center mb-3`}>
-            <Text style={tw`text-base font-bold text-slate-800`}>Chi tiết món ăn & Tag người dùng</Text>
+          <View style={tw`mb-3`}>
+            <Text style={tw`text-base font-bold text-slate-800 mb-2`}>Chi tiết món ăn & Tag người dùng</Text>
             <View style={tw`flex-row gap-2`}>
-              <TouchableOpacity onPress={handleScanBill} style={tw`flex-row items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-full`}>
-                <Camera size={14} color="#059669" />
-                <Text style={tw`text-emerald-700 text-xs font-bold`}>Quét bill</Text>
+              <TouchableOpacity onPress={handleScanBill} style={tw`flex-1 flex-row items-center justify-center gap-1.5 bg-emerald-50 py-2.5 rounded-2xl border border-emerald-100 shadow-sm`}>
+                <Camera size={16} color="#059669" />
+                <Text style={tw`text-emerald-700 text-xs font-bold`}>Quét hóa đơn AI</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleAddItem} style={tw`flex-row items-center gap-1 bg-sky-50 px-3 py-1.5 rounded-full`}>
-                <Plus size={14} color="#0284c7" />
-                <Text style={tw`text-sky-700 text-xs font-bold`}>Thêm</Text>
+              <TouchableOpacity onPress={handleAddItem} style={tw`flex-1 flex-row items-center justify-center gap-1.5 bg-sky-50 py-2.5 rounded-2xl border border-sky-100 shadow-sm`}>
+                <Plus size={16} color="#0284c7" />
+                <Text style={tw`text-sky-700 text-xs font-bold`}>Thêm món mới</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -667,7 +900,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                         {item.name.trim() || `Món ăn chưa đặt tên`}
                       </Text>
                       <Text style={tw`text-slate-400 text-xs mt-0.5`}>
-                        {item.sharedWith.length} người ăn • {(parseFloat(item.price) || 0).toLocaleString("vi-VN")} đ
+                        {item.sharedWith.length} người ăn • {item.quantity || 1} x {(parseFloat(item.price) || 0).toLocaleString("vi-VN")} đ (Tổng: {((parseFloat(item.quantity) || 1) * (parseFloat(item.price) || 0)).toLocaleString("vi-VN")} đ)
                       </Text>
                     </View>
                   </View>
@@ -716,38 +949,62 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                     mode="outlined"
                     outlineColor="#e2e8f0"
                     activeOutlineColor="#0ea5e9"
-                    style={tw`flex-2 bg-white text-slate-700`}
+                    style={tw`flex-2.2 bg-white text-slate-700`}
                   />
                   <TextInput
-                    label="Giá (đ)"
+                    label="SL"
+                    value={item.quantity || "1"}
+                    onChangeText={(val) => handleUpdateItem(item.id, "quantity", val)}
+                    keyboardType="numeric"
+                    mode="outlined"
+                    outlineColor="#e2e8f0"
+                    activeOutlineColor="#0ea5e9"
+                    style={tw`flex-0.8 bg-white text-slate-700`}
+                  />
+                  <TextInput
+                    label="Đơn giá (đ)"
                     value={item.price}
                     onChangeText={(val) => handleUpdateItem(item.id, "price", val)}
                     keyboardType="numeric"
                     mode="outlined"
                     outlineColor="#e2e8f0"
                     activeOutlineColor="#0ea5e9"
-                    style={tw`flex-1.3 bg-white text-slate-700`}
+                    style={tw`flex-1.5 bg-white text-slate-700`}
                   />
                 </View>
 
-                <Text style={tw`text-xs font-bold text-slate-400 mb-2`}>NHỮNG AI ĂN MÓN NÀY?</Text>
+                <View style={tw`flex-row justify-between items-center mb-2`}>
+                  <Text style={tw`text-xs font-bold text-slate-400`}>NHỮNG AI ĂN MÓN NÀY?</Text>
+                  <View style={tw`flex-row gap-3`}>
+                    <TouchableOpacity onPress={() => handleSelectAll(item.id)}>
+                      <Text style={tw`text-sky-500 font-bold text-xs`}>Chọn tất cả</Text>
+                    </TouchableOpacity>
+                    <Text style={tw`text-slate-300 text-xs`}>|</Text>
+                    <TouchableOpacity onPress={() => handleDeselectAll(item.id)}>
+                      <Text style={tw`text-slate-400 font-bold text-xs`}>Bỏ chọn</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
                 <View style={tw`flex-row flex-wrap gap-2`}>
                   {members.map((m) => {
                     const isChecked = item.sharedWith.includes(m.id);
                     return (
                       <TouchableOpacity
                         key={m.id}
+                        activeOpacity={0.7}
                         onPress={() => handleToggleShare(item.id, m.id)}
-                        style={tw`flex-row items-center border rounded-full px-3 py-1 ${isChecked
+                        style={tw`flex-row items-center border rounded-full px-3.5 py-1.5 gap-1.5 ${isChecked
                             ? "bg-emerald-50 border-emerald-300"
                             : "bg-slate-50 border-slate-200"
                           }`}
                       >
-                        <Checkbox.Android
-                          status={isChecked ? "checked" : "unchecked"}
-                          color="#10b981"
-                        />
-                        <Text style={tw`text-xs ${isChecked ? "text-emerald-700 font-semibold" : "text-slate-600"}`}>
+                        {isChecked ? (
+                          <Check size={12} color="#10b981" />
+                        ) : (
+                          <Plus size={12} color="#94a3b8" />
+                        )}
+                        <Text style={tw`text-xs ${isChecked ? "text-emerald-700 font-bold" : "text-slate-500 font-medium"}`}>
                           {m.fullName}
                         </Text>
                       </TouchableOpacity>
@@ -807,6 +1064,151 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
             </Text>
           </Dialog.Content>
         </Dialog>
+
+        {/* Custom Crop Image Modal */}
+        <Modal visible={showCropModal} animationType="slide" transparent={false} onRequestClose={() => setShowCropModal(false)}>
+          <SafeAreaView style={tw`flex-1 bg-slate-950`}>
+            {/* Header */}
+            <LinearGradient
+              colors={["#0f172a", "#1e293b"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={tw`flex-row items-center justify-between px-4 py-4 border-b border-slate-800`}
+            >
+              <TouchableOpacity onPress={() => setShowCropModal(false)} style={tw`p-2 bg-white/10 rounded-full`}>
+                <ChevronLeft size={20} color="white" />
+              </TouchableOpacity>
+              <Text style={tw`text-base font-black text-white`}>Cắt ảnh hóa đơn ✂️</Text>
+              <View style={tw`w-9`} />
+            </LinearGradient>
+
+            <View style={tw`flex-1 items-center justify-between py-6 px-4 pb-10`}>
+              {/* Crop Canvas Display */}
+              {cropImageUri ? (
+                <View style={tw`items-center mt-2`}>
+                  <Text style={tw`text-slate-400 text-xs mb-6 text-center px-4 leading-5`}>
+                    Dùng ngón tay chạm giữ khung để di chuyển khung trên hóa đơn. Kéo các góc của khung để co giãn kích thước khung tùy ý.
+                  </Text>
+                  
+                  {/* Canvas Container */}
+                  <View 
+                    style={[
+                      tw`relative bg-slate-900 border border-slate-700 rounded-3xl overflow-hidden shadow-2xl`, 
+                      { width: 260, height: 360 }
+                    ]}
+                  >
+                    {/* Dimmed Background Image */}
+                    <Image 
+                      source={{ uri: cropImageUri }} 
+                      style={[tw`absolute w-full h-full opacity-35`]} 
+                      resizeMode="stretch" 
+                    />
+                    
+                    {/* Draggable & Resizable Active Crop Box Overlay */}
+                    <View
+                      style={[
+                        tw`absolute border-2 border-sky-400 rounded-2xl`,
+                        {
+                          left: boxX,
+                          top: boxY,
+                          width: boxWidth,
+                          height: boxHeight,
+                          backgroundColor: "rgba(14, 165, 233, 0.03)"
+                        }
+                      ]}
+                    >
+                      {/* Draggable inner body */}
+                      <View 
+                        style={tw`w-full h-full overflow-hidden relative rounded-2xl`}
+                        {...panResponder.panHandlers}
+                      >
+                        {/* Bright aligned image */}
+                        <Image
+                          source={{ uri: cropImageUri }}
+                          style={[
+                            tw`absolute`,
+                            {
+                              width: 260,
+                              height: 360,
+                              left: -boxX,
+                              top: -boxY
+                            }
+                          ]}
+                          resizeMode="stretch"
+                        />
+
+                        {/* Rule of Thirds camera grid lines inside crop box */}
+                        <View style={tw`absolute inset-0 flex-row justify-between pointer-events-none px-[33%]`}>
+                          <View style={tw`w-[1px] h-full border-dashed border-l border-white/30`} />
+                          <View style={tw`w-[1px] h-full border-dashed border-l border-white/30`} />
+                        </View>
+                        <View style={tw`absolute inset-0 flex-col justify-between pointer-events-none py-[33%]`}>
+                          <View style={tw`h-[1px] w-full border-dashed border-t border-white/30`} />
+                          <View style={tw`h-[1px] w-full border-dashed border-t border-white/30`} />
+                        </View>
+                      </View>
+
+                      {/* TL Corner Resize Handle */}
+                      <View
+                        style={[
+                          tw`absolute w-8 h-8 items-center justify-center bg-transparent`,
+                          { top: -12, left: -12 }
+                        ]}
+                        {...panTL.panHandlers}
+                      >
+                        <View style={[tw`border-t-4 border-l-4 border-sky-400 w-3.5 h-3.5`, { borderTopLeftRadius: 4 }]} />
+                      </View>
+
+                      {/* TR Corner Resize Handle */}
+                      <View
+                        style={[
+                          tw`absolute w-8 h-8 items-center justify-center bg-transparent`,
+                          { top: -12, right: -12 }
+                        ]}
+                        {...panTR.panHandlers}
+                      >
+                        <View style={[tw`border-t-4 border-r-4 border-sky-400 w-3.5 h-3.5`, { borderTopRightRadius: 4 }]} />
+                      </View>
+
+                      {/* BL Corner Resize Handle */}
+                      <View
+                        style={[
+                          tw`absolute w-8 h-8 items-center justify-center bg-transparent`,
+                          { bottom: -12, left: -12 }
+                        ]}
+                        {...panBL.panHandlers}
+                      >
+                        <View style={[tw`border-b-4 border-l-4 border-sky-400 w-3.5 h-3.5`, { borderBottomLeftRadius: 4 }]} />
+                      </View>
+
+                      {/* BR Corner Resize Handle */}
+                      <View
+                        style={[
+                          tw`absolute w-8 h-8 items-center justify-center bg-transparent`,
+                          { bottom: -12, right: -12 }
+                        ]}
+                        {...panBR.panHandlers}
+                      >
+                        <View style={[tw`border-b-4 border-r-4 border-sky-400 w-3.5 h-3.5`, { borderBottomRightRadius: 4 }]} />
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              ) : null}
+
+              {/* Action Button */}
+              <Button
+                mode="contained"
+                onPress={handleConfirmCrop}
+                contentStyle={tw`h-13`}
+                style={tw`rounded-2xl bg-sky-500 w-full`}
+                labelStyle={tw`text-base font-bold text-white`}
+              >
+                Xác nhận cắt & Phân tích OCR
+              </Button>
+            </View>
+          </SafeAreaView>
+        </Modal>
       </Portal>
     </SafeAreaView>
   );

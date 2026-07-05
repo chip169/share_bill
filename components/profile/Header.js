@@ -1,15 +1,22 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { Copy } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Clipboard from 'expo-clipboard';
 import tw from 'twrnc';
 
 const Header = ({ user }) => {
   const firstLetter = user?.fullName ? user.fullName.charAt(0) : 'U';
 
+  const handleCopyUsername = async () => {
+    if (!user?.username) return;
+    await Clipboard.setStringAsync(user.username);
+    Alert.alert("Đã sao chép", `Đã sao chép mã username: @${user.username}`);
+  };
+
   return (
     <LinearGradient
-      colors={["#0f172a", "#1e293b", "#0ea5e9"]} // Navy slate gradient to sky blue
+      colors={["#0369a1", "#0ea5e9"]} // Unified premium Sky Blue gradient
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={tw`rounded-b-[40px] pt-14 pb-16 px-6 items-center`}
@@ -28,7 +35,11 @@ const Header = ({ user }) => {
       
       <Text style={tw`text-white text-xl font-black`}>{user?.fullName}</Text>
       
-      <TouchableOpacity style={tw`flex-row items-center gap-1.5 mt-2.5 bg-white/10 border border-white/10 px-3.5 py-1.5 rounded-full`}>
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={handleCopyUsername}
+        style={tw`flex-row items-center gap-1.5 mt-2.5 bg-white/10 border border-white/10 px-3.5 py-1.5 rounded-full`}
+      >
         <Text style={tw`text-white text-xs font-bold`}>@{user?.username}</Text>
         <Copy size={12} color="white" />
       </TouchableOpacity>

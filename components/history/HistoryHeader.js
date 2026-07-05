@@ -14,7 +14,7 @@ const HistoryHeader = ({ totalSpend, totalInvoices }) => {
 
   return (
     <LinearGradient
-      colors={["#0f172a", "#1e293b", "#0ea5e9"]} // Navy slate gradient to sky blue
+      colors={["#0369a1", "#0ea5e9"]} // Unified premium Sky Blue gradient
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={tw`rounded-b-[40px] pt-14 pb-12 px-6`}

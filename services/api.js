@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://192.168.137.1:9999";
+const API_BASE_URL = "http://192.168.1.3:9999";
 
 // Helper to format date
 const formatDate = (isoString) => {
@@ -592,6 +592,35 @@ export const deleteExpense = async (expenseId) => {
   }
 };
 
+// 14.5 Check if phone exists in database
+export const checkPhoneExists = async (phone) => {
+  try {
+    const cleanPhone = (phone || "").trim();
+    const res = await axios.get(`${API_BASE_URL}/users?phone=${cleanPhone}`);
+    return res.data && res.data.length > 0;
+  } catch (error) {
+    console.error("Lỗi checkPhoneExists:", error);
+    throw error;
+  }
+};
+
+// 14.6 Fetch user by phone or email identifier
+export const fetchUserByIdentifier = async (identifier) => {
+  try {
+    const clean = (identifier || "").trim().toLowerCase();
+    const res = await axios.get(`${API_BASE_URL}/users`);
+    const users = res.data;
+    const user = users.find(u => 
+      (u.phone && u.phone.trim() === clean) || 
+      (u.email && u.email.trim().toLowerCase() === clean)
+    );
+    return user || null;
+  } catch (error) {
+    console.error("Lỗi fetchUserByIdentifier:", error);
+    throw error;
+  }
+};
+
 // 15. Reset user password by phone number
 export const resetUserPassword = async (phone, newPassword) => {
   try {
@@ -609,6 +638,39 @@ export const resetUserPassword = async (phone, newPassword) => {
     return updateRes.data;
   } catch (error) {
     console.error("Lỗi resetUserPassword:", error);
+    throw error;
+  }
+};
+
+// 15.5 Check if email exists in database
+export const checkEmailExists = async (email) => {
+  try {
+    const cleanEmail = (email || "").trim().toLowerCase();
+    const res = await axios.get(`${API_BASE_URL}/users?email=${cleanEmail}`);
+    return res.data && res.data.length > 0;
+  } catch (error) {
+    console.error("Lỗi checkEmailExists:", error);
+    throw error;
+  }
+};
+
+// 15.6 Reset user password by email
+export const resetUserPasswordByEmail = async (email, newPassword) => {
+  try {
+    const cleanEmail = (email || "").trim().toLowerCase();
+    const res = await axios.get(`${API_BASE_URL}/users?email=${cleanEmail}`);
+    const users = res.data;
+    if (users.length === 0) {
+      throw new Error("Email này chưa được đăng ký!");
+    }
+    const user = users[0];
+    const updateRes = await axios.patch(`${API_BASE_URL}/users/${user.id}`, {
+      password: newPassword,
+      updatedAt: new Date().toISOString(),
+    });
+    return updateRes.data;
+  } catch (error) {
+    console.error("Lỗi resetUserPasswordByEmail:", error);
     throw error;
   }
 };

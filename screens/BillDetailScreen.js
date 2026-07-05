@@ -12,6 +12,7 @@ import BankInfoCard from "../components/bill/BankInfoCard";
 
 import { fetchBillDetail, settleParticipantPayment } from "../services/api";
 import { sendLocalNotification } from "../services/notifications";
+import BottomNav from "../components/navigation/BottomNav";
 
 const getVietQrBankCode = (bankName) => {
   if (!bankName) return "VCB";
@@ -119,7 +120,7 @@ export default function BillDetailScreen({ onNavigate, routeParams, currentUser 
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
       {/* Top Header */}
       <LinearGradient
-        colors={["#0f172a", "#1e293b", "#0ea5e9"]}
+        colors={["#0369a1", "#0ea5e9"]} // Unified premium Sky Blue gradient
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={tw`flex-row items-center justify-between px-4 py-4 shadow-sm rounded-b-2xl`}
@@ -203,33 +204,7 @@ export default function BillDetailScreen({ onNavigate, routeParams, currentUser 
       </Portal>
 
       {/* BOTTOM NAV */}
-      <View
-        style={tw`absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200 py-2 px-4 flex-row justify-around items-center`}
-      >
-        <TouchableOpacity
-          style={tw`items-center flex-1 py-1`}
-          onPress={() => onNavigate("home")}
-        >
-          <Home size={22} color="#94a3b8" />
-          <Text style={tw`text-[10px] text-slate-400 mt-1`}>Trang chủ</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={tw`items-center flex-1 py-1`}
-          onPress={() => onNavigate("history")}
-        >
-          <FileText size={22} color="#94a3b8" />
-          <Text style={tw`text-[10px] text-slate-400 mt-1`}>Lịch sử</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={tw`items-center flex-1 py-1`}
-          onPress={() => onNavigate("profile")}
-        >
-          <User size={22} color="#94a3b8" />
-          <Text style={tw`text-[10px] text-slate-400 mt-1`}>Cá nhân</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNav onNavigate={onNavigate} currentScreen="" />
     </SafeAreaView>
   );
 }

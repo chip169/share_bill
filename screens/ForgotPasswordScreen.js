@@ -1,15 +1,21 @@
 import React, { useState } from "react";
 import { View, SafeAreaView, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView, Alert } from "react-native";
-import { TextInput, Button, Text, HelperText } from "react-native-paper";
-import { Phone, Lock, Eye, EyeOff, Sparkles, ChevronLeft } from "lucide-react-native";
+import { TextInput, Button, Text } from "react-native-paper";
+import { Mail, Lock, Eye, EyeOff, Sparkles, ChevronLeft } from "lucide-react-native";
 import tw from "twrnc";
 import { LinearGradient } from "expo-linear-gradient";
-import { resetUserPassword } from "../services/api";
+import { fetchUserByIdentifier, resetUserPassword } from "../services/api";
+
+const QUESTION = "Màu bạn yêu thích là gì? ";
 
 export default function ForgotPasswordScreen({ onNavigate }) {
-  const [phone, setPhone] = useState("");
-  const [step, setStep] = useState(1); // 1: Nhập SĐT, 2: Nhập OTP & Mật khẩu mới
-  const [otp, setOtp] = useState("");
+  const [identifier, setIdentifier] = useState("");
+  const [step, setStep] = useState(1); // 1: Nhập tài khoản, 2: Trả lời câu hỏi bảo mật, 3: Thiết lập mật khẩu mới
+  const [targetUser, setTargetUser] = useState(null);
+
+  // Câu trả lời của người dùng
+  const [ans, setAns] = useState("");
+
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [secureText, setSecureText] = useState(true);
@@ -17,55 +23,52 @@ export default function ForgotPasswordScreen({ onNavigate }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const validatePhone = (phoneNumber) => {
-    const regex = /^(0[3|5|7|8|9])[0-9]{8}$/;
-    return regex.test(phoneNumber.trim());
-  };
-
-  const handleSendOtp = async () => {
-    if (!phone) {
-      setErrorMsg("Vui lòng nhập số điện thoại!");
-      return;
-    }
-    if (!validatePhone(phone)) {
-      setErrorMsg("Số điện thoại không hợp lệ (phải bắt đầu bằng 03, 05, 07, 08, 09 và gồm 10 số)!");
+  const handleFindUser = async () => {
+    if (!identifier.trim()) {
+      setErrorMsg("Vui lòng nhập Số điện thoại hoặc Email!");
       return;
     }
 
     setErrorMsg("");
     setLoading(true);
     try {
-      // Gọi API tra cứu thử SĐT có tồn tại hay không trước khi gửi OTP
-      const apiResult = await resetUserPassword(phone, "DUMMY_PWD_CHECK");
-      // Nếu API không báo lỗi "Số điện thoại này chưa được đăng ký!" thì tức là số điện thoại tồn tại.
-      // Tuy nhiên, do chúng ta truyền "DUMMY_PWD_CHECK" nên nó sẽ chạy thử,
-      // để tránh thay đổi mật khẩu thật ở bước này, ta chỉ kiểm tra thông qua lookup API.
-    } catch (error) {
-      if (error.message === "Số điện thoại này chưa được đăng ký!") {
-        setErrorMsg("Số điện thoại này chưa được đăng ký trên hệ thống!");
+      const user = await fetchUserByIdentifier(identifier);
+      if (!user) {
+        setErrorMsg("Không tìm thấy tài khoản nào khớp với thông tin đã nhập!");
         setLoading(false);
         return;
       }
-    }
 
-    // Nếu số điện thoại tồn tại (hoặc vượt qua check thành công), chuyển sang bước 2
-    setLoading(false);
-    setStep(2);
-    Alert.alert(
-      "Gửi mã thành công",
-      "Mã xác thực OTP đã được gửi đến số điện thoại của bạn! (Mã mặc định: 123456)",
-      [{ text: "OK" }]
-    );
+      setTargetUser(user);
+      setStep(2); // Chuyển sang bước 2 để trả lời câu hỏi bảo mật
+    } catch (error) {
+      setErrorMsg("Đã xảy ra lỗi khi tìm kiếm tài khoản. Vui lòng thử lại!");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleResetPassword = async () => {
-    if (!otp || !newPassword || !confirmPassword) {
-      setErrorMsg("Vui lòng nhập đầy đủ thông tin!");
+  const handleVerifyQuestion = () => {
+    if (!ans.trim()) {
+      setErrorMsg("Vui lòng nhập câu trả lời bảo mật!");
       return;
     }
 
-    if (otp.trim() !== "123456") {
-      setErrorMsg("Mã OTP không chính xác! (Mã mặc định là 123456)");
+    // Lấy câu trả lời chính xác lưu trong user hoặc giá trị mặc định fallback
+    const expectedAns = (targetUser.securityAnswer || "xanh").trim().toLowerCase();
+    const userAns = ans.trim().toLowerCase();
+
+    if (userAns === expectedAns) {
+      setErrorMsg("");
+      setStep(3); // Đi tiếp sang bước 3 nhập mật khẩu mới
+    } else {
+      setErrorMsg("Câu trả lời bảo mật không chính xác! Vui lòng thử lại.");
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      setErrorMsg("Vui lòng nhập đầy đủ mật khẩu mới!");
       return;
     }
 
@@ -82,7 +85,7 @@ export default function ForgotPasswordScreen({ onNavigate }) {
     setErrorMsg("");
     setLoading(true);
     try {
-      await resetUserPassword(phone, newPassword);
+      await resetUserPassword(targetUser.phone, newPassword);
       Alert.alert(
         "Thành công 🎉",
         "Mật khẩu của bạn đã được cập nhật thành công! Vui lòng đăng nhập lại bằng mật khẩu mới.",
@@ -102,7 +105,7 @@ export default function ForgotPasswordScreen({ onNavigate }) {
         style={tw`flex-1`}
       >
         <LinearGradient
-          colors={["#0f172a", "#1e293b", "#0ea5e9"]}
+          colors={["#0369a1", "#0ea5e9"]} // Unified premium Sky Blue gradient
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={tw`flex-row items-center px-4 py-4 shadow-sm rounded-b-2xl`}
@@ -121,10 +124,9 @@ export default function ForgotPasswordScreen({ onNavigate }) {
             </View>
             <Text style={tw`text-2xl font-bold text-slate-800`}>Quên mật khẩu</Text>
             <Text style={tw`text-slate-400 mt-2 text-center text-xs px-6`}>
-              {step === 1 
-                ? "Nhập số điện thoại đã đăng ký để nhận mã xác thực OTP khôi phục mật khẩu."
-                : "Nhập mã OTP vừa nhận được và thiết lập mật khẩu mới cho tài khoản của bạn."
-              }
+              {step === 1 && "Nhập Số điện thoại hoặc Email tài khoản để khôi phục."}
+              {step === 2 && "Vui lòng trả lời câu hỏi bảo mật để xác thực danh tính chủ sở hữu tài khoản."}
+              {step === 3 && "Thiết lập mật khẩu mới cho tài khoản của bạn để tiếp tục sử dụng."}
             </Text>
           </View>
 
@@ -138,56 +140,73 @@ export default function ForgotPasswordScreen({ onNavigate }) {
 
             {step === 1 ? (
               <View>
-                {/* Phone Input */}
+                {/* Identifier Input */}
                 <View style={tw`mb-6`}>
                   <TextInput
-                    label="Số điện thoại của bạn"
-                    value={phone}
-                    onChangeText={setPhone}
-                    keyboardType="phone-pad"
+                    label="Số điện thoại"
+                    value={identifier}
+                    onChangeText={setIdentifier}
+                    keyboardType="default"
+                    autoCapitalize="none"
                     mode="outlined"
                     outlineColor="#e2e8f0"
                     activeOutlineColor="#0ea5e9"
                     style={tw`bg-white text-slate-700`}
-                    left={<TextInput.Icon icon={() => <Phone size={18} color="#94a3b8" />} />}
+                    left={<TextInput.Icon icon={() => <Mail size={18} color="#94a3b8" />} />}
                   />
                 </View>
 
                 {/* Submit button */}
                 <Button
                   mode="contained"
-                  onPress={handleSendOtp}
+                  onPress={handleFindUser}
                   loading={loading}
                   disabled={loading}
                   contentStyle={tw`h-13`}
                   style={tw`rounded-2xl bg-sky-500 shadow-md shadow-sky-500/20`}
                   labelStyle={tw`text-base font-bold text-white`}
                 >
-                  Gửi mã xác thực OTP
+                  Tiếp tục
                 </Button>
               </View>
-            ) : (
+            ) : step === 2 ? (
               <View>
-                {/* Phone Readonly Display */}
-                <View style={tw`bg-slate-50 border border-slate-100 rounded-2xl p-3 mb-4 flex-row justify-between items-center`}>
-                  <Text style={tw`text-slate-500 text-xs`}>Tài khoản:</Text>
-                  <Text style={tw`text-slate-800 font-bold text-sm`}>{phone}</Text>
-                </View>
+                {/* Security Question Field */}
+                <Text style={tw`text-slate-800 font-bold text-sm mb-4`}>Câu hỏi xác minh:</Text>
 
-                {/* OTP Input */}
-                <View style={tw`mb-4`}>
+                <View style={tw`mb-6`}>
+                  <Text style={tw`text-slate-500 text-xs mb-2`}>{QUESTION}</Text>
                   <TextInput
-                    label="Nhập mã OTP (123456)"
-                    value={otp}
-                    onChangeText={setOtp}
-                    keyboardType="numeric"
+                    value={ans}
+                    onChangeText={setAns}
                     mode="outlined"
                     outlineColor="#e2e8f0"
                     activeOutlineColor="#0ea5e9"
-                    style={tw`bg-white text-slate-700`}
+                    style={tw`bg-white h-11 text-xs`}
+                    placeholder="Nhập câu trả lời"
+                    dense
                   />
                 </View>
 
+                <Button
+                  mode="contained"
+                  onPress={handleVerifyQuestion}
+                  contentStyle={tw`h-13`}
+                  style={tw`rounded-2xl bg-sky-500`}
+                  labelStyle={tw`text-base font-bold text-white`}
+                >
+                  Xác minh câu trả lời
+                </Button>
+
+                <TouchableOpacity
+                  onPress={() => { setStep(1); setErrorMsg(""); }}
+                  style={tw`mt-4 items-center`}
+                >
+                  <Text style={tw`text-slate-400 font-bold text-xs`}>Quay lại nhập tài khoản</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View>
                 {/* New Password Input */}
                 <View style={tw`mb-4`}>
                   <TextInput
@@ -249,11 +268,11 @@ export default function ForgotPasswordScreen({ onNavigate }) {
                   Xác nhận đặt lại mật khẩu
                 </Button>
 
-                <TouchableOpacity 
-                  onPress={() => { setStep(1); setErrorMsg(""); }} 
+                <TouchableOpacity
+                  onPress={() => { setStep(2); setErrorMsg(""); }}
                   style={tw`mt-4 items-center`}
                 >
-                  <Text style={tw`text-sky-500 font-bold text-xs`}>Quay lại nhập số điện thoại</Text>
+                  <Text style={tw`text-sky-500 font-bold text-xs`}>Quay lại</Text>
                 </TouchableOpacity>
               </View>
             )}
