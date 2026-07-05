@@ -7,6 +7,7 @@ import HistoryHeader from "../components/history/HistoryHeader";
 import SearchBar from "../components/history/SearchBar";
 import ExpenseCard from "../components/history/ExpenseCard";
 import { fetchUserProfile, fetchHistoryExpenses } from "../services/api";
+import BottomNav from "../components/navigation/BottomNav";
 
 const HistoryScreen = ({ onNavigate, currentUser }) => {
   const [searchText, setSearchText] = useState("");
@@ -77,32 +78,7 @@ const HistoryScreen = ({ onNavigate, currentUser }) => {
       </ScrollView>
 
       {/* Navigation bottom bar */}
-      <View
-        style={tw`absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200 py-2 px-4 flex-row justify-around items-center`}
-      >
-        <TouchableOpacity 
-          style={tw`items-center flex-1 py-1`}
-          onPress={() => onNavigate("home")}
-        >
-          <Home size={22} color="#94a3b8" />
-          <Text style={tw`text-[10px] text-slate-400 mt-1`}>
-            Trang chủ
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={tw`items-center flex-1 py-1`}>
-          <FileText size={22} color="#0ea5e9" />
-          <Text style={tw`text-[10px] text-[#0ea5e9] font-bold mt-1`}>
-            Lịch sử
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={tw`items-center flex-1 py-1`}
-          onPress={() => onNavigate("profile")}
-        >
-          <User size={22} color="#94a3b8" />
-          <Text style={tw`text-[10px] text-slate-400 mt-1`}>Cá nhân</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNav onNavigate={onNavigate} currentScreen="history" />
     </SafeAreaView>
   );
 };

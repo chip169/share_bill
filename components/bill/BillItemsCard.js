@@ -13,18 +13,27 @@ export default function BillItemsCard({ bill }) {
         Chi tiết món
       </Text>
 
-      {bill.items.map((item) => (
-        <View
-          key={item.id}
-          style={tw`flex-row justify-between items-center mb-4`}
-        >
-          <Text style={tw`text-slate-700 text-base`}>{item.name}</Text>
+      {bill.items.map((item) => {
+        const qty = item.quantity || 1;
+        const totalCost = qty * item.price;
+        return (
+          <View
+            key={item.id}
+            style={tw`flex-row justify-between items-center mb-4`}
+          >
+            <View style={tw`flex-1 mr-2`}>
+              <Text style={tw`text-slate-700 text-base`}>{item.name}</Text>
+              <Text style={tw`text-slate-400 text-xs mt-0.5`}>
+                Số lượng: {qty} x {item.price.toLocaleString("vi-VN")} đ
+              </Text>
+            </View>
 
-          <Text style={tw`text-slate-800 font-semibold text-base`}>
-            {item.price.toLocaleString("vi-VN")} đ
-          </Text>
-        </View>
-      ))}
+            <Text style={tw`text-slate-800 font-semibold text-base`}>
+              {totalCost.toLocaleString("vi-VN")} đ
+            </Text>
+          </View>
+        );
+      })}
 
       <View
         style={tw`border-t border-slate-200 mt-3 pt-4 flex-row justify-between items-center`}

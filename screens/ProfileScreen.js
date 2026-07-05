@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert, Image } from "react-native";
 import { Portal, Dialog, Button, TextInput } from "react-native-paper";
-import { CreditCard, QrCode, Bell, Settings, HelpCircle, LogOut, Home, FileText, User, ChevronRight, Check, Search } from "lucide-react-native";
+import { CreditCard, QrCode, Bell, Settings, HelpCircle, LogOut } from "lucide-react-native";
 import tw from "twrnc";
 
 import Header from "../components/profile/Header";
 import PersonalInfo from "../components/profile/PersonalInfo";
 import MenuItem from "../components/profile/MenuItem";
 import { fetchUserProfile, updateUserProfile, fetchNotifications, markNotificationRead, fetchBankList } from "../services/api";
+import BottomNav from "../components/navigation/BottomNav";
 
 const POPULAR_BANKS = [
   { code: "MB", shortName: "MBBank", name: "Ngân hàng TMCP Quân Đội", bin: "970422", logo: "https://api.vietqr.io/img/MB.png" },
@@ -59,6 +60,10 @@ const ProfileScreen = ({ onNavigate, currentUser, onLogout }) => {
   const [showBankPicker, setShowBankPicker] = useState(false);
   const [bankSearch, setBankSearch] = useState("");
 
+  // Security Question State
+  const [showQuestionModal, setShowQuestionModal] = useState(false);
+  const [editAns, setEditAns] = useState("");
+
   useEffect(() => {
     const loadBanks = async () => {
       const apiBanks = await fetchBankList();
@@ -98,11 +103,18 @@ const ProfileScreen = ({ onNavigate, currentUser, onLogout }) => {
       setEditBankName(profileData.bankName || "");
       setEditBankAccount(profileData.bankAccount || "");
       setNotifications(notifData);
+      
+      // Load câu hỏi bảo mật
+      setEditAns(profileData.securityAnswer || "");
     } catch (error) {
       console.log("Lỗi kết nối API profile:", error);
     } finally {
-      setLoading(false);
+      loadProfileDetailsEnd();
     }
+  };
+
+  const loadProfileDetailsEnd = () => {
+    setLoading(false);
   };
 
   const handleSaveBank = async () => {
@@ -127,6 +139,24 @@ const ProfileScreen = ({ onNavigate, currentUser, onLogout }) => {
       loadProfile(); // Load lại profile
     } catch (e) {
       Alert.alert("Lỗi", "Không thể lưu thông tin. Vui lòng thử lại!");
+    }
+  };
+
+  const handleSaveQuestion = async () => {
+    if (!editAns.trim()) {
+      Alert.alert("Thiếu thông tin", "Vui lòng nhập câu trả lời cho câu hỏi bảo mật!");
+      return;
+    }
+
+    try {
+      await updateUserProfile(currentUser.id, {
+        securityAnswer: editAns.trim()
+      });
+      Alert.alert("Thành công 🎉", "Đã cập nhật câu trả lời bảo mật thành công!");
+      setShowQuestionModal(false);
+      loadProfile();
+    } catch (e) {
+      Alert.alert("Lỗi", "Không thể lưu câu hỏi bảo mật. Vui lòng thử lại!");
     }
   };
 
@@ -157,21 +187,21 @@ const ProfileScreen = ({ onNavigate, currentUser, onLogout }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={tw`flex-1 justify-center items-center bg-[#f8fafc]`}>
+      <SafeAreaView style={tw`flex-1 justify-center items-center bg-slate-50`}>
         <ActivityIndicator size="large" color="#0ea5e9" />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={tw`flex-1 bg-[#f8fafc]`}>
+    <SafeAreaView style={tw`flex-1 bg-slate-50`}>
       <ScrollView style={tw`flex-1`} showsVerticalScrollIndicator={false} contentContainerStyle={tw`pb-24`}>
         <Header user={user} />
         <PersonalInfo user={user} />
         
         <View style={tw`px-4 mt-4`}>
           <View
-            style={tw`bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100`}
+            style={tw`bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-100`}
           >
             <MenuItem 
               icon={CreditCard} 
@@ -188,6 +218,11 @@ const ProfileScreen = ({ onNavigate, currentUser, onLogout }) => {
               label="Thông báo" 
               onPress={handleOpenNotifications} 
               showBadge={notifications.some(n => !n.isRead)}
+            />
+            <MenuItem 
+              icon={HelpCircle} 
+              label="Thiết lập Câu hỏi bảo mật" 
+              onPress={() => setShowQuestionModal(true)} 
             />
             <MenuItem 
               icon={Settings} 
@@ -219,6 +254,34 @@ const ProfileScreen = ({ onNavigate, currentUser, onLogout }) => {
 
       {/* PORTAL MODALS */}
       <Portal>
+        {/* Modal thiết lập Câu hỏi bảo mật */}
+        <Dialog visible={showQuestionModal} onDismiss={() => setShowQuestionModal(false)} style={tw`bg-white rounded-3xl`}>
+          <Dialog.Title style={tw`font-bold text-slate-800`}>Câu hỏi bảo mật</Dialog.Title>
+          <Dialog.Content style={tw`gap-3`}>
+            <Text style={tw`text-slate-500 text-xs mb-2`}>
+              Thiết lập câu trả lời cho câu hỏi bảo mật bắt buộc để phục vụ khôi phục mật khẩu tài khoản:
+            </Text>
+            
+            <View style={tw`mb-2`}>
+              <Text style={tw`text-slate-700 text-xs font-bold mb-2`}>Màu bạn yêu thích là gì?</Text>
+              <TextInput
+                value={editAns}
+                onChangeText={setEditAns}
+                placeholder="Ví dụ: xanh"
+                mode="outlined"
+                outlineColor="#e2e8f0"
+                activeOutlineColor="#0ea5e9"
+                style={tw`bg-white h-11 text-xs`}
+                dense
+              />
+            </View>
+          </Dialog.Content>
+          <Dialog.Actions style={tw`pb-4 pr-4`}>
+            <Button onPress={() => setShowQuestionModal(false)} labelStyle={tw`text-slate-400 font-bold`}>Hủy</Button>
+            <Button onPress={handleSaveQuestion} labelStyle={tw`text-sky-500 font-bold`}>Lưu</Button>
+          </Dialog.Actions>
+        </Dialog>
+
         {/* Modal chỉnh sửa Ngân hàng */}
         <Dialog visible={showBankModal} onDismiss={() => setShowBankModal(false)} style={tw`bg-white rounded-3xl`}>
           <Dialog.Title style={tw`font-bold text-slate-800`}>Tài khoản ngân hàng</Dialog.Title>
@@ -365,30 +428,7 @@ const ProfileScreen = ({ onNavigate, currentUser, onLogout }) => {
       </Portal>
 
       {/* Navigation bottom bar */}
-      <View
-        style={tw`absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200 py-2 px-4 flex-row justify-around items-center`}
-      >
-        <TouchableOpacity
-          style={tw`items-center flex-1 py-1`}
-          onPress={() => onNavigate("home")}
-        >
-          <Home size={22} color="#94a3b8" />
-          <Text style={tw`text-slate-400 text-[10px] mt-1`}>Trang chủ</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={tw`items-center flex-1 py-1`}
-          onPress={() => onNavigate("history")}
-        >
-          <FileText size={22} color="#94a3b8" />
-          <Text style={tw`text-slate-400 text-[10px] mt-1`}>Lịch sử</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={tw`items-center flex-1 py-1`}>
-          <User size={22} color="#0ea5e9" />
-          <Text style={tw`text-[10px] text-[#0ea5e9] font-bold mt-1`}>
-            Cá nhân
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNav onNavigate={onNavigate} currentScreen="profile" />
     </SafeAreaView>
   );
 };

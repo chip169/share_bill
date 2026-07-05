@@ -12,7 +12,8 @@
       "bio": "Food lover",
       "status": "ACTIVE",
       "createdAt": "2026-05-21T10:00:00",
-      "updatedAt": "2026-05-21T10:00:00"
+      "updatedAt": "2026-05-21T10:00:00",
+      "securityAnswer": "xanh"
     },
     {
       "id": "u2",
@@ -20,7 +21,7 @@
       "username": "HIEX123",
       "email": "a@gmail.com",
       "phone": "0987654321",
-      "password": "123456",
+      "password": "654321",
       "avatar": "https://example.com/avatar1.jpg",
       "bankName": "Tpbank",
       "bankAccount": "25569158888",
@@ -28,7 +29,8 @@
       "bio": "Food lover",
       "status": "ACTIVE",
       "createdAt": "2026-05-21T10:00:00",
-      "updatedAt": "2026-05-21T10:00:00"
+      "updatedAt": "2026-07-05T09:15:19.085Z",
+      "securityAnswer": "xanh"
     },
     {
       "id": "u4",
@@ -44,7 +46,8 @@
       "bio": "Active Share Bill member",
       "status": "ACTIVE",
       "createdAt": "2026-06-17T09:57:52.343Z",
-      "updatedAt": "2026-06-22T09:47:43.986Z"
+      "updatedAt": "2026-06-22T09:47:43.986Z",
+      "securityAnswer": "xanh"
     },
     {
       "id": "u3",
@@ -60,7 +63,8 @@
       "bio": "Active Share Bill member",
       "status": "ACTIVE",
       "createdAt": "2026-05-21T10:00:00",
-      "updatedAt": "2026-05-21T10:00:00"
+      "updatedAt": "2026-05-21T10:00:00",
+      "securityAnswer": "xanh"
     },
     {
       "id": "u_7o4k3674f",
@@ -76,7 +80,8 @@
       "bio": "Active Share Bill member",
       "status": "ACTIVE",
       "createdAt": "2026-06-18T08:23:16.078Z",
-      "updatedAt": "2026-06-18T08:23:16.078Z"
+      "updatedAt": "2026-06-18T08:23:16.078Z",
+      "securityAnswer": "xanh"
     },
     {
       "id": "u_eut05baug",
@@ -92,7 +97,8 @@
       "bio": "Active Share Bill member",
       "status": "ACTIVE",
       "createdAt": "2026-06-18T08:24:50.058Z",
-      "updatedAt": "2026-06-18T08:24:50.058Z"
+      "updatedAt": "2026-06-18T08:24:50.058Z",
+      "securityAnswer": "xanh"
     },
     {
       "id": "u_80j3jf5e8",
@@ -108,7 +114,8 @@
       "bio": "Active Share Bill member",
       "status": "ACTIVE",
       "createdAt": "2026-06-22T08:39:40.781Z",
-      "updatedAt": "2026-06-22T08:39:40.782Z"
+      "updatedAt": "2026-06-22T08:39:40.782Z",
+      "securityAnswer": "xanh"
     },
     {
       "id": "u_yp1ycypv2",
@@ -124,7 +131,25 @@
       "bio": "Active Share Bill member",
       "status": "ACTIVE",
       "createdAt": "2026-06-22T09:32:26.433Z",
-      "updatedAt": "2026-06-22T09:32:26.433Z"
+      "updatedAt": "2026-06-22T09:32:26.433Z",
+      "securityAnswer": "xanh"
+    },
+    {
+      "id": "u_d7gzn4ix4",
+      "username": "USR4093",
+      "fullName": "Mạnh",
+      "email": "u_d7gzn4ix4@sharebill.com",
+      "phone": "0899821764",
+      "password": "123456",
+      "avatar": "https://example.com/avatar_default.jpg",
+      "bankName": "TCB",
+      "bankAccount": "7417062004",
+      "qrCode": "USER_USR4093",
+      "bio": "Active Share Bill member",
+      "status": "ACTIVE",
+      "createdAt": "2026-06-23T06:28:50.711Z",
+      "updatedAt": "2026-06-23T06:28:50.711Z",
+      "securityAnswer": "xanh"
     }
   ],
   "groups": [
@@ -568,6 +593,50 @@
       "createdAt": "2026-06-22T17:46:49.923Z",
       "updatedAt": "2026-06-22T17:46:49.923Z",
       "categoryId": "c1"
+    },
+    {
+      "id": "e_pz0jg4n8r",
+      "billCode": "BILL-XUP6",
+      "groupId": "g1",
+      "title": "avc",
+      "totalAmount": 41000,
+      "paidBy": "u_d7gzn4ix4",
+      "splitMethod": "ITEMIZED",
+      "expenseDate": "2026-06-23T06:30",
+      "items": [
+        {
+          "id": "item_1",
+          "name": "KEM ỐC QUÊ MERINO TEEN DÂU",
+          "price": 13000,
+          "sharedWith": [
+            "u_d7gzn4ix4",
+            "u3"
+          ]
+        },
+        {
+          "id": "item_2",
+          "name": "KEM MOCHI MERINO ĐẬU ĐỎ",
+          "price": 21000,
+          "sharedWith": [
+            "u_d7gzn4ix4",
+            "u3"
+          ]
+        },
+        {
+          "id": "item_3",
+          "name": "KEM MOCHI JOYDAY STRAWSEERY 45ML",
+          "price": 7000,
+          "sharedWith": [
+            "u_d7gzn4ix4",
+            "u3"
+          ]
+        }
+      ],
+      "status": "ACTIVE",
+      "createdBy": "u_d7gzn4ix4",
+      "createdAt": "2026-06-23T06:33:14.768Z",
+      "updatedAt": "2026-06-23T06:33:14.768Z",
+      "categoryId": "c1"
     }
   ],
   "expenseParticipants": [
@@ -894,6 +963,26 @@
     {
       "id": "ep_ivmadwbns",
       "expenseId": "e_74hc1g2iy",
+      "userId": "u3",
+      "owedAmount": 20500,
+      "paidAmount": 0,
+      "remainingAmount": 20500,
+      "isSettled": false,
+      "settledAt": null
+    },
+    {
+      "id": "ep_bp43hf68d",
+      "expenseId": "e_pz0jg4n8r",
+      "userId": "u_d7gzn4ix4",
+      "owedAmount": 20500,
+      "paidAmount": 41000,
+      "remainingAmount": 0,
+      "isSettled": true,
+      "settledAt": "2026-06-23T06:33:14.884Z"
+    },
+    {
+      "id": "ep_8nahmh0l3",
+      "expenseId": "e_pz0jg4n8r",
       "userId": "u3",
       "owedAmount": 20500,
       "paidAmount": 0,

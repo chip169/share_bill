@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import { View, SafeAreaView, ScrollView, TouchableOpacity, Animated, Easing, StyleSheet, Alert, Modal } from "react-native";
-import { Button, Text, TextInput, Card, ActivityIndicator } from "react-native-paper";
-import { ChevronLeft, RotateCw, Plus, Trash2, HelpCircle, Award } from "lucide-react-native";
+import { Button, Text, Card, ActivityIndicator } from "react-native-paper";
+import { ChevronLeft, RotateCw, Award } from "lucide-react-native";
 import tw from "twrnc";
 import { LinearGradient } from "expo-linear-gradient";
 import { Audio } from "expo-av";
+import Svg, { Path, G, Text as SvgText } from "react-native-svg";
 
 const SLICE_COLORS = [
   "#ef4444", // Red
@@ -19,8 +20,6 @@ const SLICE_COLORS = [
 
 export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }) {
   const [activeGame, setActiveGame] = useState("wheel"); // "wheel" or "dice"
-  
-  const playSound = () => {};
   
   // Tự động đọc danh sách thành viên từ màn tạo hóa đơn gửi qua, hoặc dùng default mock list
   const [participants, setParticipants] = useState(() => {
@@ -46,12 +45,88 @@ export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }
   // Animated values
   const spinValue = useRef(new Animated.Value(0)).current;
 
+  // Audio References
+  const bgSoundRef = useRef(null);
+  const sfxSoundRef = useRef(null);
+
+  useEffect(() => {
+    // Tự động phát nhạc nền khi vừa vào màn hình chọn trò chơi
+    loadBgMusic();
+
+    return () => {
+      // Dọn dẹp, tắt hết âm thanh khi thoát màn hình
+      unloadAllSounds();
+    };
+  }, []);
+
+  const loadBgMusic = async () => {
+    try {
+      // Dừng nhạc nền cũ nếu có
+      if (bgSoundRef.current) {
+        await bgSoundRef.current.unloadAsync();
+      }
+      // Tải và phát nhạc nền vip.mp3 (chỉ phát một lần duy nhất, không lặp lại)
+      const { sound } = await Audio.Sound.createAsync(
+        require("../assets/vip.mp3"),
+        { shouldPlay: true, isLooping: false, volume: 0.4 }
+      );
+      bgSoundRef.current = sound;
+    } catch (e) {
+      console.log("Lỗi tải nhạc nền:", e);
+    }
+  };
+
+  const stopBgMusic = async () => {
+    if (bgSoundRef.current) {
+      try {
+        await bgSoundRef.current.stopAsync();
+        await bgSoundRef.current.unloadAsync();
+        bgSoundRef.current = null;
+      } catch (e) {
+        console.log("Lỗi dừng nhạc nền:", e);
+      }
+    }
+  };
+
+  const playSfx = async (url) => {
+    try {
+      // Dừng âm thanh hiệu ứng cũ nếu đang chạy
+      if (sfxSoundRef.current) {
+        await sfxSoundRef.current.stopAsync();
+        await sfxSoundRef.current.unloadAsync();
+        sfxSoundRef.current = null;
+      }
+
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: url },
+        { shouldPlay: true }
+      );
+      sfxSoundRef.current = sound;
+    } catch (e) {
+      console.log("Lỗi phát hiệu ứng âm thanh:", e);
+    }
+  };
+
+  const unloadAllSounds = async () => {
+    if (bgSoundRef.current) {
+      try { await bgSoundRef.current.unloadAsync(); } catch (e) {}
+      bgSoundRef.current = null;
+    }
+    if (sfxSoundRef.current) {
+      try { await sfxSoundRef.current.unloadAsync(); } catch (e) {}
+      sfxSoundRef.current = null;
+    }
+  };
+
   const handleSpinWheel = () => {
     if (spinning) return;
     setSpinning(true);
     setWinners([]);
     spinValue.setValue(0);
-    playSound();
+    
+    // Tắt nhạc nền và phát tiếng vòng quay
+    stopBgMusic();
+    playSfx("https://raw.githubusercontent.com/freeCodeCamp/cdn/master/build/testable-projects-fcc/audio/BeepSound.wav");
 
     // Shuffle and pick unique winners
     const shuffled = [...participants].sort(() => 0.5 - Math.random());
@@ -76,7 +151,9 @@ export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }
       setWinners(selectedWinners);
       setSpinning(false);
       setShowWinnerModal(true);
-      playSound();
+      
+      // Phát tiếng chiến thắng khi hiển thị kết quả
+      playSfx("https://raw.githubusercontent.com/Piyushiitk24/EduLadder/master/audio/correct.mp3");
     });
   };
 
@@ -90,7 +167,10 @@ export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }
     if (rolling) return;
     setRolling(true);
     setDiceResults({});
-    playSound();
+    
+    // Tắt nhạc nền và phát tiếng đổ xúc sắc
+    stopBgMusic();
+    playSfx("https://raw.githubusercontent.com/Piyushiitk24/EduLadder/master/audio/dice.mp3");
 
     let rollCount = 0;
     const interval = setInterval(() => {
@@ -125,7 +205,9 @@ export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }
         setWinners(selectedWinners);
         setRolling(false);
         setShowWinnerModal(true);
-        playSound();
+        
+        // Phát tiếng chiến thắng khi tìm thấy người thua
+        playSfx("https://raw.githubusercontent.com/Piyushiitk24/EduLadder/master/audio/correct.mp3");
       }
     }, 120);
   };
@@ -158,7 +240,7 @@ export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
       {/* Header */}
       <LinearGradient
-        colors={["#0f172a", "#1e293b", "#0ea5e9"]}
+        colors={["#0369a1", "#0ea5e9"]} // Unified premium Sky Blue gradient
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={tw`flex-row items-center px-4 py-4 shadow-sm rounded-b-2xl`}
@@ -222,66 +304,67 @@ export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }
         {activeGame === "wheel" ? (
           <View style={tw`items-center mt-6`}>
             {/* Visual Wheel pointer */}
-            <View style={tw`z-10 -mb-4 w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[25px] border-t-red-500`} />
+            <View style={tw`z-10 -mb-4 w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[25px] border-t-rose-600`} />
 
              {/* Rotatable Wheel circle wrapped to separate native shadow animation */}
-            <View style={tw`w-64 h-64 rounded-full border-4 border-slate-800 shadow-lg overflow-hidden`}>
+            <View style={tw`w-64 h-64 rounded-full border-4 border-slate-800 shadow-lg overflow-hidden bg-white`}>
               <Animated.View
                 style={[
-                  tw`w-full h-full bg-orange-100 items-center justify-center`,
+                  tw`w-full h-full items-center justify-center`,
                   { transform: [{ rotate: rotateWheel }] },
                 ]}
               >
-                {/* Spoke lines dividers - exactly N radii */}
-                {participants.map((p, idx) => {
-                  const rotation = (360 / participants.length) * idx;
-                  return (
-                    <View
-                      key={`line_${p.id || idx}`}
-                      style={[
-                        styles.segmentLine,
-                        { transform: [{ rotate: `${rotation}deg` }] },
-                      ]}
-                    >
-                      <View style={{ height: "50%", backgroundColor: "#cbd5e1", opacity: 0.5, width: "100%" }} />
-                    </View>
-                  );
-                })}
+                <Svg width="256" height="256" viewBox="0 0 256 256">
+                  <G>
+                    {participants.map((p, idx) => {
+                      const segmentAngle = 360 / participants.length;
+                      const startAngle = segmentAngle * idx - 90;
+                      const endAngle = segmentAngle * (idx + 1) - 90;
+                      const radStart = (startAngle * Math.PI) / 180;
+                      const radEnd = (endAngle * Math.PI) / 180;
+                      const cx = 128;
+                      const cy = 128;
+                      const R = 128;
+                      
+                      const x1 = cx + R * Math.cos(radStart);
+                      const y1 = cy + R * Math.sin(radStart);
+                      const x2 = cx + R * Math.cos(radEnd);
+                      const y2 = cy + R * Math.sin(radEnd);
+                      
+                      const pathData = `M ${cx} ${cy} L ${x1} ${y1} A ${R} ${R} 0 0 1 ${x2} ${y2} Z`;
+                      const sliceColor = SLICE_COLORS[idx % SLICE_COLORS.length];
+                      
+                      // Calculate text label positioning
+                      const midAngle = segmentAngle * idx + segmentAngle / 2;
+                      const rText = R * 0.65;
+                      const radText = ((midAngle - 90) * Math.PI) / 180;
+                      const tx = cx + rText * Math.cos(radText);
+                      const ty = cy + rText * Math.sin(radText);
+                      
+                      // Text rotation: base polar angle is midAngle - 90 (theta)
+                      const theta = midAngle - 90;
+                      const textRot = (theta > 90 || theta < -90) ? (theta + 180) : theta;
 
-                {/* Text labels centered in each slice, styled as vertical pills */}
-                {participants.map((p, idx) => {
-                  const segmentAngle = 360 / participants.length;
-                  const rotation = (segmentAngle * idx) + (segmentAngle / 2);
-                  const pillColor = SLICE_COLORS[idx % SLICE_COLORS.length];
-                  return (
-                    <View
-                      key={`text_${p.id || idx}`}
-                      style={[
-                        styles.wheelTextContainer,
-                        { transform: [{ rotate: `${rotation}deg` }] },
-                      ]}
-                    >
-                      <View
-                        style={[
-                          tw`px-2.5 py-1 rounded-full shadow-sm items-center justify-center border border-white/20`,
-                          {
-                            backgroundColor: pillColor,
-                            transform: [{ rotate: "90deg" }], // Aligns pill vertically along the radius
-                            minWidth: 50,
-                            maxWidth: 80,
-                          }
-                        ]}
-                      >
-                        <Text
-                          numberOfLines={1}
-                          style={tw`text-white font-bold text-[8px] text-center`}
-                        >
-                          {p.fullName}
-                        </Text>
-                      </View>
-                    </View>
-                  );
-                })}
+                      return (
+                        <G key={`slice_${p.id || idx}`}>
+                          <Path d={pathData} fill={sliceColor} stroke="#ffffff" strokeWidth="1" />
+                          <SvgText
+                            x={tx}
+                            y={ty}
+                            fill="#ffffff"
+                            fontSize="9"
+                            fontWeight="bold"
+                            textAnchor="middle"
+                            alignmentBaseline="middle"
+                            transform={`rotate(${textRot}, ${tx}, ${ty})`}
+                          >
+                            {p.fullName}
+                          </SvgText>
+                        </G>
+                      );
+                    })}
+                  </G>
+                </Svg>
               </Animated.View>
             </View>
 
@@ -339,7 +422,9 @@ export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }
         visible={showWinnerModal}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowWinnerModal(false)}
+        onRequestClose={() => {
+          setShowWinnerModal(false);
+        }}
       >
         <View style={tw`flex-1 justify-center items-center bg-black/60 px-6`}>
           <View style={tw`w-full max-w-[340px] bg-white rounded-3xl p-6 items-center shadow-2xl`}>
@@ -378,7 +463,9 @@ export default function MiniGamesScreen({ onNavigate, currentUser, routeParams }
               </Button>
               <Button
                 mode="text"
-                onPress={() => setShowWinnerModal(false)}
+                onPress={() => {
+                  setShowWinnerModal(false);
+                }}
                 style={tw`rounded-2xl`}
                 labelStyle={tw`text-slate-400 font-semibold text-xs`}
               >
@@ -408,6 +495,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     alignItems: "center",
-    paddingTop: 12, // Move pills slightly closer to the edge
+    paddingTop: 12,
   },
 });

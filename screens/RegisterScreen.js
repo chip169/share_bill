@@ -26,7 +26,16 @@ export default function RegisterScreen({ onNavigate }) {
   const [password, setPassword] = useState("");
   const [bankName, setBankName] = useState("");
   const [bankAccount, setBankAccount] = useState("");
-  
+
+  // Câu hỏi bảo mật duy nhất
+  const [securityAnswer, setSecurityAnswer] = useState("");
+
+  // Touch States for real-time validation
+  const [fullNameTouched, setFullNameTouched] = useState(false);
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  const [bankAccountTouched, setBankAccountTouched] = useState(false);
+
   // Bank Picker states
   const [bankList, setBankList] = useState(POPULAR_BANKS);
   const [showBankPicker, setShowBankPicker] = useState(false);
@@ -49,45 +58,63 @@ export default function RegisterScreen({ onNavigate }) {
     loadBanks();
   }, []);
 
-  const filteredBanks = bankList.filter(b => 
+  const filteredBanks = bankList.filter(b =>
     b.code.toLowerCase().includes(bankSearch.toLowerCase()) ||
     b.shortName.toLowerCase().includes(bankSearch.toLowerCase()) ||
     b.name.toLowerCase().includes(bankSearch.toLowerCase())
   );
-  
+
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  const validateFullName = (name) => {
+    const regex = /^[a-zA-Z\s\u00C0-\u024F\u1E00-\u1EFF]+$/;
+    return regex.test(name.trim()) && name.trim().length >= 2;
+  };
+
   const validatePhone = (phoneNumber) => {
-    // Số điện thoại Việt Nam chuẩn: 10 chữ số, bắt đầu bằng 03, 05, 07, 08, 09
     const regex = /^(0[3|5|7|8|9])[0-9]{8}$/;
     return regex.test(phoneNumber.trim());
   };
 
   const validateBankAccount = (account) => {
-    // Chỉ cho phép chữ số, độ dài từ 9 đến 15 ký tự
     const regex = /^[0-9]{9,15}$/;
-    return regex.test(account);
+    return regex.test(account.trim());
   };
 
   const handleRegister = async () => {
+    setFullNameTouched(true);
+    setPhoneTouched(true);
+    setPasswordTouched(true);
+    setBankAccountTouched(true);
+
     if (!fullName || !phone || !password || !bankName || !bankAccount) {
       setErrorMsg("Vui lòng nhập đầy đủ các trường thông tin!");
       return;
     }
 
+    if (!validateFullName(fullName)) {
+      setErrorMsg("Họ và tên không hợp lệ (chỉ chứa chữ cái, ít nhất 2 ký tự)!");
+      return;
+    }
+
     if (!validatePhone(phone)) {
-      setErrorMsg("Số điện thoại không hợp lệ (phải bắt đầu bằng 03, 05, 07, 08, 09 và gồm 10 số)!");
+      setErrorMsg("Số điện thoại không hợp lệ (gồm 10 số và bắt đầu bằng 03/05/07/08/09)!");
       return;
     }
 
     if (password.length < 6) {
-      setErrorMsg("Mật khẩu không hợp lệ (phải có ít nhất 6 ký tự)!");
+      setErrorMsg("Mật khẩu phải có ít nhất 6 ký tự!");
       return;
     }
 
     if (!validateBankAccount(bankAccount)) {
-      setErrorMsg("Số tài khoản ngân hàng không hợp lệ (phải là số, từ 9 đến 15 số)!");
+      setErrorMsg("Số tài khoản ngân hàng không hợp lệ (từ 9 đến 15 số)!");
+      return;
+    }
+
+    if (!securityAnswer.trim()) {
+      setErrorMsg("Vui lòng nhập câu trả lời cho câu hỏi bảo mật!");
       return;
     }
 
@@ -100,9 +127,9 @@ export default function RegisterScreen({ onNavigate }) {
         password,
         bankName,
         bankAccount,
+        securityAnswer: securityAnswer.trim(),
       });
-      
-      // Gửi thông báo đăng ký thành công
+
       sendLocalNotification(
         "Đăng ký tài khoản thành công! 🎉",
         `Chào mừng ${fullName} đã tham gia ShareBill. Hãy bắt đầu tạo bill và chia sẻ chi tiêu!`
@@ -127,7 +154,7 @@ export default function RegisterScreen({ onNavigate }) {
         style={tw`flex-1`}
       >
         <LinearGradient
-          colors={["#0f172a", "#1e293b", "#0ea5e9"]}
+          colors={["#0369a1", "#0ea5e9"]} // Unified premium Sky Blue gradient
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={tw`flex-row items-center px-4 py-4 shadow-sm rounded-b-2xl`}
@@ -154,51 +181,64 @@ export default function RegisterScreen({ onNavigate }) {
               </View>
             ) : null}
 
-            {/* Full Name */}
-            <View style={tw`mb-4`}>
+            <Text style={tw`text-xs font-bold text-slate-400 mb-3`}>
+              THÔNG TIN ĐĂNG NHẬP
+            </Text>
+
+            {/* Fullname */}
+            <View style={tw`mb-2`}>
               <TextInput
                 label="Họ và tên"
                 value={fullName}
-                onChangeText={setFullName}
+                onChangeText={(val) => { setFullName(val); setFullNameTouched(true); }}
                 mode="outlined"
-                outlineColor="#e2e8f0"
-                activeOutlineColor="#0ea5e9"
+                outlineColor={fullNameTouched && !validateFullName(fullName) ? "#ef4444" : "#e2e8f0"}
+                activeOutlineColor={fullNameTouched && !validateFullName(fullName) ? "#ef4444" : "#0ea5e9"}
                 style={tw`bg-white text-slate-700`}
-                left={<TextInput.Icon icon={() => <User size={18} color="#94a3b8" />} />}
+                left={<User size={18} color="#94a3b8" style={tw`ml-3`} />}
               />
+              <HelperText type="error" visible={fullNameTouched && !validateFullName(fullName)} style={tw`text-xs -mt-1`}>
+                Tên chỉ chứa chữ cái, ít nhất 2 ký tự.
+              </HelperText>
             </View>
 
             {/* Phone */}
-            <View style={tw`mb-4`}>
+            <View style={tw`mb-2`}>
               <TextInput
-                label="Số điện thoại đăng nhập"
+                label="Số điện thoại"
                 value={phone}
-                onChangeText={setPhone}
+                onChangeText={(val) => { setPhone(val); setPhoneTouched(true); }}
                 keyboardType="phone-pad"
                 mode="outlined"
-                outlineColor="#e2e8f0"
-                activeOutlineColor="#0ea5e9"
+                outlineColor={phoneTouched && !validatePhone(phone) ? "#ef4444" : "#e2e8f0"}
+                activeOutlineColor={phoneTouched && !validatePhone(phone) ? "#ef4444" : "#0ea5e9"}
                 style={tw`bg-white text-slate-700`}
-                left={<TextInput.Icon icon={() => <Phone size={18} color="#94a3b8" />} />}
+                left={<Phone size={18} color="#94a3b8" style={tw`ml-3`} />}
               />
+              <HelperText type="error" visible={phoneTouched && !validatePhone(phone)} style={tw`text-xs -mt-1`}>
+                SĐT gồm 10 số và bắt đầu bằng 03/05/07/08/09.
+              </HelperText>
             </View>
 
             {/* Password */}
-            <View style={tw`mb-4`}>
+            <View style={tw`mb-2`}>
               <TextInput
                 label="Mật khẩu"
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(val) => { setPassword(val); setPasswordTouched(true); }}
                 secureTextEntry
                 mode="outlined"
-                outlineColor="#e2e8f0"
-                activeOutlineColor="#0ea5e9"
+                outlineColor={passwordTouched && password.length < 6 ? "#ef4444" : "#e2e8f0"}
+                activeOutlineColor={passwordTouched && password.length < 6 ? "#ef4444" : "#0ea5e9"}
                 style={tw`bg-white text-slate-700`}
-                left={<TextInput.Icon icon={() => <Lock size={18} color="#94a3b8" />} />}
+                left={<Lock size={18} color="#94a3b8" style={tw`ml-3`} />}
               />
+              <HelperText type="error" visible={passwordTouched && password.length < 6} style={tw`text-xs -mt-1`}>
+                Mật khẩu phải có ít nhất 6 ký tự.
+              </HelperText>
             </View>
 
-            <Text style={tw`text-sm font-bold text-slate-400 mt-2 mb-3`}>
+            <Text style={tw`text-xs font-bold text-slate-400 mt-3 mb-3`}>
               THÔNG TIN THANH TOÁN (ĐỂ NHẬN CHUYỂN KHOẢN)
             </Text>
 
@@ -213,29 +253,51 @@ export default function RegisterScreen({ onNavigate }) {
                   outlineColor="#e2e8f0"
                   activeOutlineColor="#0ea5e9"
                   style={tw`bg-white text-slate-700`}
-                  left={<TextInput.Icon icon={() => <CreditCard size={18} color="#94a3b8" />} />}
+                  left={<CreditCard size={18} color="#94a3b8" style={tw`ml-3`} />}
                   editable={false}
                 />
               </View>
             </TouchableOpacity>
 
             {/* Bank Account */}
-            <View style={tw`mb-6`}>
+            <View style={tw`mb-4`}>
               <TextInput
                 label="Số tài khoản ngân hàng"
                 value={bankAccount}
-                onChangeText={setBankAccount}
+                onChangeText={(val) => { setBankAccount(val); setBankAccountTouched(true); }}
                 keyboardType="numeric"
+                mode="outlined"
+                outlineColor={bankAccountTouched && !validateBankAccount(bankAccount) ? "#ef4444" : "#e2e8f0"}
+                activeOutlineColor={bankAccountTouched && !validateBankAccount(bankAccount) ? "#ef4444" : "#0ea5e9"}
+                style={tw`bg-white text-slate-700`}
+                left={<CreditCard size={18} color="#94a3b8" style={tw`ml-3`} />}
+              />
+              <HelperText type="error" visible={bankAccountTouched && !validateBankAccount(bankAccount)} style={tw`text-xs -mt-1`}>
+                Số tài khoản phải chỉ chứa số, từ 9 đến 15 số.
+              </HelperText>
+            </View>
+
+            <Text style={tw`text-xs font-bold text-slate-400 mt-3 mb-3`}>
+              CÂU HỎI BẢO MẬT (DÙNG ĐỂ KHÔI PHỤC MẬT KHẨU)
+            </Text>
+
+            {/* Security Q */}
+            <View style={tw`mb-6`}>
+              <Text style={tw`text-slate-500 text-[10px] mb-1.5`}>
+                Màu bạn yêu thích là gì?
+              </Text>
+              <TextInput
+                value={securityAnswer}
+                onChangeText={setSecurityAnswer}
+                placeholder="Nhập câu trả lời"
                 mode="outlined"
                 outlineColor="#e2e8f0"
                 activeOutlineColor="#0ea5e9"
-                style={tw`bg-white text-slate-700`}
-                left={<TextInput.Icon icon={() => <CreditCard size={18} color="#94a3b8" />} />}
+                style={tw`bg-white h-11 text-xs`}
+                dense
               />
-              <HelperText type="info" visible style={tw`text-slate-400 text-[10px] -mt-1`}>
-                Số tài khoản phải chỉ chứa số, độ dài từ 9 đến 15 số.
-              </HelperText>
             </View>
+
 
             {/* Submit button */}
             <Button
@@ -251,55 +313,55 @@ export default function RegisterScreen({ onNavigate }) {
             </Button>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
 
-      {/* Bank Picker Dialog */}
-      <Portal>
-        <Dialog visible={showBankPicker} onDismiss={() => { setShowBankPicker(false); setBankSearch(""); }} style={tw`bg-white rounded-3xl max-h-[80%]`}>
-          <Dialog.Title style={tw`font-bold text-slate-800`}>Chọn Ngân hàng</Dialog.Title>
-          <Dialog.Content style={tw`gap-3`}>
-            <TextInput
-              label="Tìm kiếm ngân hàng..."
-              value={bankSearch}
-              onChangeText={setBankSearch}
-              mode="outlined"
-              outlineColor="#e2e8f0"
-              activeOutlineColor="#0ea5e9"
-              style={tw`bg-white text-slate-700 mb-2 h-11 text-xs`}
-              left={<TextInput.Icon icon={() => <Search size={18} color="#94a3b8" />} />}
-              dense
-            />
-            <ScrollView style={tw`max-h-80`}>
-              {filteredBanks.length === 0 ? (
-                <View style={tw`items-center py-6`}>
-                  <Text style={tw`text-slate-400 text-sm`}>Không tìm thấy ngân hàng!</Text>
-                </View>
-              ) : (
-                filteredBanks.map((b) => (
-                  <TouchableOpacity
-                    key={b.bin}
-                    onPress={() => {
-                      setBankName(b.code);
-                      setShowBankPicker(false);
-                      setBankSearch("");
-                    }}
-                    style={tw`flex-row items-center py-3 border-b border-slate-50`}
-                  >
-                    <Image source={{ uri: b.logo }} style={tw`w-12 h-6 mr-3`} resizeMode="contain" />
-                    <View style={tw`flex-1`}>
-                      <Text style={tw`text-slate-800 font-bold text-sm`}>{b.shortName}</Text>
-                      <Text style={tw`text-slate-400 text-[10px]`} numberOfLines={1}>{b.name}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))
-              )}
-            </ScrollView>
-          </Dialog.Content>
-          <Dialog.Actions style={tw`pb-4 pr-4`}>
-            <Button onPress={() => { setShowBankPicker(false); setBankSearch(""); }} labelStyle={tw`text-sky-500 font-bold`}>Đóng</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+        {/* Bank Picker Dialog Portal */}
+        <Portal>
+          <Dialog visible={showBankPicker} onDismiss={() => { setShowBankPicker(false); setBankSearch(""); }} style={tw`bg-white rounded-3xl max-h-[80%]`}>
+            <Dialog.Title style={tw`font-bold text-slate-800`}>Chọn Ngân hàng</Dialog.Title>
+            <Dialog.Content style={tw`gap-3`}>
+              <TextInput
+                label="Tìm kiếm ngân hàng..."
+                value={bankSearch}
+                onChangeText={setBankSearch}
+                mode="outlined"
+                outlineColor="#e2e8f0"
+                activeOutlineColor="#0ea5e9"
+                style={tw`bg-white text-slate-700 mb-2 h-11 text-xs`}
+                left={<TextInput.Icon icon={() => <Search size={18} color="#94a3b8" />} />}
+                dense
+              />
+              <ScrollView style={tw`max-h-80`}>
+                {filteredBanks.length === 0 ? (
+                  <View style={tw`items-center py-6`}>
+                    <Text style={tw`text-slate-400 text-sm`}>Không tìm thấy ngân hàng!</Text>
+                  </View>
+                ) : (
+                  filteredBanks.map((b) => (
+                    <TouchableOpacity
+                      key={b.bin}
+                      onPress={() => {
+                        setBankName(b.code);
+                        setShowBankPicker(false);
+                        setBankSearch("");
+                      }}
+                      style={tw`flex-row items-center py-3 border-b border-slate-50`}
+                    >
+                      <Image source={{ uri: b.logo }} style={tw`w-12 h-6 mr-3`} resizeMode="contain" />
+                      <View style={tw`flex-1`}>
+                        <Text style={tw`text-slate-800 font-bold text-sm`}>{b.shortName}</Text>
+                        <Text style={tw`text-slate-400 text-[10px]`} numberOfLines={1}>{b.name}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                )}
+              </ScrollView>
+            </Dialog.Content>
+            <Dialog.Actions style={tw`pb-4 pr-4`}>
+              <Button onPress={() => { setShowBankPicker(false); setBankSearch(""); }} labelStyle={tw`text-sky-500 font-bold`}>Đóng</Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

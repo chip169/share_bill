@@ -5,6 +5,7 @@ import HomeHeader from "../components/home/HomeHeader";
 import ExpenseCard from "../components/history/ExpenseCard";
 import { fetchUserProfile, fetchHistoryExpenses, joinExpenseByCode } from "../services/api";
 import { sendLocalNotification } from "../services/notifications";
+import BottomNav from "../components/navigation/BottomNav";
 
 import { Text, FAB, Card, TextInput, Button } from "react-native-paper";
 import { Home, FileText, User, Plus, Camera, Dices, PlusCircle } from "lucide-react-native";
@@ -237,36 +238,7 @@ export default function HomeScreen({ onNavigate, currentUser }) {
       />
 
       {/* BOTTOM NAV */}
-      <View
-        style={tw`absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200 py-2 px-4 flex-row justify-around items-center`}
-      >
-        <TouchableOpacity style={tw`items-center flex-1 py-1`}>
-          <Home size={22} color="#0ea5e9" />
-          <Text style={tw`text-[10px] text-[#0ea5e9] font-bold mt-1`}>
-            Trang chủ
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={tw`items-center flex-1 py-1`}
-          onPress={() => onNavigate("history")}
-        >
-          <FileText size={22} color="#94a3b8" />
-          <Text style={tw`text-[10px] text-slate-400 mt-1`}>
-            Lịch sử
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={tw`items-center flex-1 py-1`}
-          onPress={() => onNavigate("profile")}
-        >
-          <User size={22} color="#94a3b8" />
-          <Text style={tw`text-[10px] text-slate-400 mt-1`}>
-            Cá nhân
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNav onNavigate={onNavigate} currentScreen="home" />
     </SafeAreaView>
   );
 }
