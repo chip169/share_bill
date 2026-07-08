@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://192.168.1.3:9999";
+const API_BASE_URL = "https://share-bill-server.onrender.com";
 
 // Helper to format date
 const formatDate = (isoString) => {
@@ -610,8 +610,8 @@ export const fetchUserByIdentifier = async (identifier) => {
     const clean = (identifier || "").trim().toLowerCase();
     const res = await axios.get(`${API_BASE_URL}/users`);
     const users = res.data;
-    const user = users.find(u => 
-      (u.phone && u.phone.trim() === clean) || 
+    const user = users.find(u =>
+      (u.phone && u.phone.trim() === clean) ||
       (u.email && u.email.trim().toLowerCase() === clean)
     );
     return user || null;
