@@ -13,12 +13,14 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "bundleIdentifier": "com.sharebill.app",
       "supportsTablet": true,
       "infoPlist": {
         "NSFaceIDUsageDescription": "ShareBill cần quyền FaceID để giúp bạn đăng nhập nhanh chóng và bảo mật tài khoản."
       }
     },
     "android": {
+      "package": "com.sharebill.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -29,7 +31,8 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font"
     ]
   }
 }
