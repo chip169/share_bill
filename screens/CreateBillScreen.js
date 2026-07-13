@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { View, SafeAreaView, ScrollView, TouchableOpacity, Alert, StyleSheet, Image, Modal, PanResponder } from "react-native";
+import { View, ScrollView, TouchableOpacity, Alert, StyleSheet, Image, Modal, PanResponder } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { TextInput, Button, Text, Card, Checkbox, IconButton, Portal, Dialog, ActivityIndicator } from "react-native-paper";
 import { ChevronLeft, Plus, Trash2, Search, UserPlus, Calendar, ChevronDown, ChevronUp, Camera, Check } from "lucide-react-native";
 import tw from "twrnc";
-import { searchUserByUsername, createExpense, updateExpense, fetchBillDetail, scanReceiptOCR, parseOcrTextToItems } from "../services/api";
+import { searchUserByUsername, createExpense, updateExpense, fetchBillDetail, scanReceiptOCR, parseOcrTextToItems, guessCategoryFromItems } from "../services/api";
 import { Audio } from "expo-av";
 import { sendLocalNotification } from "../services/notifications";
 import * as ImagePicker from "expo-image-picker";
@@ -129,13 +130,13 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
         const proposedY = startBoxYRef.current + gestureState.dy;
         const limitX = startBoxXRef.current + startBoxWRef.current - 50;
         const limitY = startBoxYRef.current + startBoxHRef.current - 50;
-        
+
         const newX = Math.min(limitX, Math.max(0, proposedX));
         const newY = Math.min(limitY, Math.max(0, proposedY));
-        
+
         const newW = startBoxWRef.current + (startBoxXRef.current - newX);
         const newH = startBoxHRef.current + (startBoxYRef.current - newY);
-        
+
         setBoxX(newX);
         setBoxY(newY);
         setBoxWidth(newW);
@@ -160,10 +161,10 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
         const limitY = startBoxYRef.current + startBoxHRef.current - 50;
         const newY = Math.min(limitY, Math.max(0, proposedY));
         const newH = startBoxHRef.current + (startBoxYRef.current - newY);
-        
+
         const proposedW = startBoxWRef.current + gestureState.dx;
         const newW = Math.min(260 - startBoxXRef.current, Math.max(50, proposedW));
-        
+
         setBoxY(newY);
         setBoxHeight(newH);
         setBoxWidth(newW);
@@ -187,10 +188,10 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
         const limitX = startBoxXRef.current + startBoxWRef.current - 50;
         const newX = Math.min(limitX, Math.max(0, proposedX));
         const newW = startBoxWRef.current + (startBoxXRef.current - newX);
-        
+
         const proposedH = startBoxHRef.current + gestureState.dy;
         const newH = Math.min(360 - startBoxYRef.current, Math.max(50, proposedH));
-        
+
         setBoxX(newX);
         setBoxWidth(newW);
         setBoxHeight(newH);
@@ -214,7 +215,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
         const proposedH = startBoxHRef.current + gestureState.dy;
         const newW = Math.min(260 - startBoxXRef.current, Math.max(50, proposedW));
         const newH = Math.min(360 - startBoxYRef.current, Math.max(50, proposedH));
-        
+
         setBoxWidth(newW);
         setBoxHeight(newH);
       }
@@ -333,7 +334,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
         if (members.some((m) => m.id === foundUser.id)) {
           Alert.alert("Thông báo", "Người dùng này đã có trong danh sách thành viên!");
         } else {
-           const newMember = {
+          const newMember = {
             id: foundUser.id,
             fullName: foundUser.fullName,
             username: foundUser.username || `USR${foundUser.id.toUpperCase()}`
@@ -525,13 +526,13 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
       setScanStatus("Đang gửi ảnh đã cắt lên máy chủ OCR...");
       const parsedText = await scanReceiptOCR(cropResult.base64);
 
-      setScanStatus("AI đang phân tích tên món & giá tiền...");
+      setScanStatus("AI đang phân tích tên mục & giá tiền...");
       const extractedItems = parseOcrTextToItems(parsedText);
 
       if (extractedItems.length === 0) {
         Alert.alert(
-          "Kết quả quét ⚠️", 
-          "Không nhận diện được tên món ăn / giá tiền cụ thể nào từ ảnh đã cắt. Vui lòng di chuyển hoặc phóng to khung lưới tới vùng chữ rõ nét hơn!"
+          "Kết quả quét ⚠️",
+          "Không nhận diện được tên món / dịch vụ hay giá tiền cụ thể nào từ ảnh đã cắt. Vui lòng di chuyển hoặc phóng to khung lưới tới vùng chữ rõ nét hơn!"
         );
       } else {
         // Tag toàn bộ thành viên hiện tại vào các món mới
@@ -543,7 +544,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
 
         Alert.alert(
           "Quét hóa đơn thành công 🎉",
-          `Nhận diện được ${extractedItems.length} món ăn.\n\nBạn muốn làm gì với danh sách này?`,
+          `Nhận diện được ${extractedItems.length} mục chi tiết.\n\nBạn muốn làm gì với danh sách này?`,
           [
             {
               text: "Thêm tiếp vào hóa đơn",
@@ -558,12 +559,16 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                   const filteredPrev = prev.filter(item => item.name.trim() !== "" || item.price !== "");
                   return [...filteredPrev, ...adjusted];
                 });
+                const guessedCategoryId = guessCategoryFromItems(mappedExtractedItems);
+                setCategoryId(guessedCategoryId);
               }
             },
             {
               text: "Ghi đè mới hoàn toàn",
               onPress: () => {
                 setItems(mappedExtractedItems);
+                const guessedCategoryId = guessCategoryFromItems(mappedExtractedItems);
+                setCategoryId(guessedCategoryId);
               }
             }
           ]
@@ -622,13 +627,13 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
     // Validate items
     const invalidItem = items.find((item) => !item.name.trim() || !item.price || parseFloat(item.price) <= 0);
     if (invalidItem) {
-      Alert.alert("Thông tin không hợp lệ", "Tất cả các món ăn phải có tên và giá tiền hợp lệ!");
+      Alert.alert("Thông tin không hợp lệ", "Tất cả các món / dịch vụ phải có tên và giá tiền hợp lệ!");
       return;
     }
 
     const noPayerItem = items.find((item) => item.sharedWith.length === 0);
     if (noPayerItem) {
-      Alert.alert("Thiếu thành viên ăn", `Món "${noPayerItem.name}" chưa gắn thẻ người ăn nào!`);
+      Alert.alert("Thiếu thành viên sử dụng", `Mục "${noPayerItem.name}" chưa được gắn thẻ thành viên nào!`);
       return;
     }
 
@@ -751,7 +756,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
         </TouchableOpacity>
       </LinearGradient>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={tw`pb-32`}>
+      <ScrollView showsVerticalScrollIndicator={false} style={tw`flex-1`}>
         {/* Info Card */}
         <Card style={tw`m-4 bg-white rounded-3xl p-4 shadow-sm border border-slate-100`}>
           <Text style={tw`text-base font-bold text-slate-800 mb-3`}>Thông tin chung</Text>
@@ -849,8 +854,8 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                     key={m.id}
                     onPress={() => setPaidById(m.id)}
                     style={tw`flex-row items-center border rounded-full px-3 py-1.5 ${isPayer
-                        ? "bg-sky-500 border-sky-500"
-                        : "bg-white border-slate-200"
+                      ? "bg-sky-500 border-sky-500"
+                      : "bg-white border-slate-200"
                       }`}
                   >
                     <View style={tw`w-4 h-4 rounded-full items-center justify-center mr-1.5 ${isPayer ? "bg-white" : "bg-sky-500"}`}>
@@ -869,7 +874,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
         {/* Items Section */}
         <View style={tw`mx-4`}>
           <View style={tw`mb-3`}>
-            <Text style={tw`text-base font-bold text-slate-800 mb-2`}>Chi tiết món ăn & Tag người dùng</Text>
+            <Text style={tw`text-base font-bold text-slate-800 mb-2`}>Danh sách món / dịch vụ & Tag thành viên</Text>
             <View style={tw`flex-row gap-2`}>
               <TouchableOpacity onPress={handleScanBill} style={tw`flex-1 flex-row items-center justify-center gap-1.5 bg-emerald-50 py-2.5 rounded-2xl border border-emerald-100 shadow-sm`}>
                 <Camera size={16} color="#059669" />
@@ -877,7 +882,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
               </TouchableOpacity>
               <TouchableOpacity onPress={handleAddItem} style={tw`flex-1 flex-row items-center justify-center gap-1.5 bg-sky-50 py-2.5 rounded-2xl border border-sky-100 shadow-sm`}>
                 <Plus size={16} color="#0284c7" />
-                <Text style={tw`text-sky-700 text-xs font-bold`}>Thêm món mới</Text>
+                <Text style={tw`text-sky-700 text-xs font-bold`}>Thêm mục mới</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -897,10 +902,10 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                     </View>
                     <View style={tw`flex-1`}>
                       <Text style={tw`text-slate-800 font-semibold text-sm`} numberOfLines={1}>
-                        {item.name.trim() || `Món ăn chưa đặt tên`}
+                        {item.name.trim() || `Mục chi tiết chưa đặt tên`}
                       </Text>
                       <Text style={tw`text-slate-400 text-xs mt-0.5`}>
-                        {item.sharedWith.length} người ăn • {item.quantity || 1} x {(parseFloat(item.price) || 0).toLocaleString("vi-VN")} đ (Tổng: {((parseFloat(item.quantity) || 1) * (parseFloat(item.price) || 0)).toLocaleString("vi-VN")} đ)
+                        {item.sharedWith.length} thành viên • {item.quantity || 1} x {(parseFloat(item.price) || 0).toLocaleString("vi-VN")} đ (Tổng: {((parseFloat(item.quantity) || 1) * (parseFloat(item.price) || 0)).toLocaleString("vi-VN")} đ)
                       </Text>
                     </View>
                   </View>
@@ -929,7 +934,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                     <View style={tw`w-6 h-6 rounded-full bg-sky-500 items-center justify-center mr-2`}>
                       <Text style={tw`text-white font-bold text-xs`}>{index + 1}</Text>
                     </View>
-                    <Text style={tw`text-slate-800 font-bold text-sm`}>Đang chỉnh sửa món</Text>
+                    <Text style={tw`text-slate-800 font-bold text-sm`}>Đang chỉnh sửa mục</Text>
                   </View>
                   <View style={tw`flex-row items-center gap-3`}>
                     {items.length > 1 && (
@@ -943,7 +948,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
 
                 <View style={tw`flex-row gap-2 mb-3`}>
                   <TextInput
-                    label="Tên món"
+                    label="Tên món / dịch vụ"
                     value={item.name}
                     onChangeText={(val) => handleUpdateItem(item.id, "name", val)}
                     mode="outlined"
@@ -953,7 +958,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                   />
                   <TextInput
                     label="SL"
-                    value={item.quantity || "1"}
+                    value={item.quantity}
                     onChangeText={(val) => handleUpdateItem(item.id, "quantity", val)}
                     keyboardType="numeric"
                     mode="outlined"
@@ -974,7 +979,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                 </View>
 
                 <View style={tw`flex-row justify-between items-center mb-2`}>
-                  <Text style={tw`text-xs font-bold text-slate-400`}>NHỮNG AI ĂN MÓN NÀY?</Text>
+                  <Text style={tw`text-xs font-bold text-slate-400`}>NHỮNG AI DÙNG</Text>
                   <View style={tw`flex-row gap-3`}>
                     <TouchableOpacity onPress={() => handleSelectAll(item.id)}>
                       <Text style={tw`text-sky-500 font-bold text-xs`}>Chọn tất cả</Text>
@@ -995,8 +1000,8 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                         activeOpacity={0.7}
                         onPress={() => handleToggleShare(item.id, m.id)}
                         style={tw`flex-row items-center border rounded-full px-3.5 py-1.5 gap-1.5 ${isChecked
-                            ? "bg-emerald-50 border-emerald-300"
-                            : "bg-slate-50 border-slate-200"
+                          ? "bg-emerald-50 border-emerald-300"
+                          : "bg-slate-50 border-slate-200"
                           }`}
                       >
                         {isChecked ? (
@@ -1038,7 +1043,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
       </ScrollView>
 
       {/* Floating Save Button */}
-      <View style={tw`absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-100`}>
+      <View style={tw`p-4 bg-white border-t border-slate-100`}>
         <Button
           mode="contained"
           onPress={handleSave}
@@ -1089,21 +1094,21 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                   <Text style={tw`text-slate-400 text-xs mb-6 text-center px-4 leading-5`}>
                     Dùng ngón tay chạm giữ khung để di chuyển khung trên hóa đơn. Kéo các góc của khung để co giãn kích thước khung tùy ý.
                   </Text>
-                  
+
                   {/* Canvas Container */}
-                  <View 
+                  <View
                     style={[
-                      tw`relative bg-slate-900 border border-slate-700 rounded-3xl overflow-hidden shadow-2xl`, 
+                      tw`relative bg-slate-900 border border-slate-700 rounded-3xl overflow-hidden shadow-2xl`,
                       { width: 260, height: 360 }
                     ]}
                   >
                     {/* Dimmed Background Image */}
-                    <Image 
-                      source={{ uri: cropImageUri }} 
-                      style={[tw`absolute w-full h-full opacity-35`]} 
-                      resizeMode="stretch" 
+                    <Image
+                      source={{ uri: cropImageUri }}
+                      style={[tw`absolute w-full h-full opacity-35`]}
+                      resizeMode="stretch"
                     />
-                    
+
                     {/* Draggable & Resizable Active Crop Box Overlay */}
                     <View
                       style={[
@@ -1118,7 +1123,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                       ]}
                     >
                       {/* Draggable inner body */}
-                      <View 
+                      <View
                         style={tw`w-full h-full overflow-hidden relative rounded-2xl`}
                         {...panResponder.panHandlers}
                       >

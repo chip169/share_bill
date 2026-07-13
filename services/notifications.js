@@ -61,3 +61,37 @@ export async function sendLocalNotification(title, body, data = {}) {
     console.error('Lỗi gửi thông báo đẩy:', error);
   }
 }
+
+// Hàm lên lịch gửi thông báo nhắc nhở sau một khoảng thời gian (giây)
+export async function scheduleLocalNotification(identifier, title, body, seconds, data = {}) {
+  try {
+    // Hủy lịch nhắc cũ để tránh trùng lặp
+    await Notifications.cancelScheduledNotificationAsync(identifier).catch(() => {});
+
+    await Notifications.scheduleNotificationAsync({
+      identifier: identifier,
+      content: {
+        title: title,
+        body: body,
+        data: data,
+        sound: true,
+        priority: Notifications.AndroidNotificationPriority.MAX,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: seconds,
+      },
+    });
+  } catch (error) {
+    console.error('Lỗi lên lịch thông báo đẩy:', error);
+  }
+}
+
+// Hàm hủy một thông báo đã lên lịch
+export async function cancelScheduledNotification(identifier) {
+  try {
+    await Notifications.cancelScheduledNotificationAsync(identifier).catch(() => {});
+  } catch (error) {
+    console.error('Lỗi hủy thông báo đẩy:', error);
+  }
+}

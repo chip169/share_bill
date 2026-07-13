@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, ScrollView, ActivityIndicator, TouchableOpacity, SafeAreaView, Alert, Image } from "react-native";
+import { View, ScrollView, ActivityIndicator, TouchableOpacity, Alert, Image } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, Text, Dialog, Portal } from "react-native-paper";
 import tw from "twrnc";
 import { LinearGradient } from "expo-linear-gradient";
@@ -10,8 +11,10 @@ import PaymentCard from "../components/bill/PaymentCard";
 import MemberStatusList from "../components/bill/MemberStatusList";
 import BankInfoCard from "../components/bill/BankInfoCard";
 
-import { fetchBillDetail, settleParticipantPayment } from "../services/api";
+import { fetchBillDetail, settleParticipantPayment, sendPaymentReminder } from "../services/api";
 import { sendLocalNotification } from "../services/notifications";
+import * as Clipboard from "expo-clipboard";
+import * as Speech from "expo-speech";
 import BottomNav from "../components/navigation/BottomNav";
 
 const getVietQrBankCode = (bankName) => {
@@ -32,6 +35,7 @@ const getVietQrBankCode = (bankName) => {
 };
 
 export default function BillDetailScreen({ onNavigate, routeParams, currentUser }) {
+  const insets = useSafeAreaInsets();
   const [billData, setBillData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showQrModal, setShowQrModal] = useState(false);
@@ -79,6 +83,98 @@ export default function BillDetailScreen({ onNavigate, routeParams, currentUser 
               loadBillDetail();
             } catch (e) {
               Alert.alert("Lỗi", "Không thể xác nhận thanh toán.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleRemindPayment = async (member) => {
+    Alert.alert(
+      "Lựa chọn cách nhắc nợ 🤔",
+      `Bạn muốn đòi tiền thành viên ${member.name} theo hình thức nào?`,
+      [
+        {
+          text: "Hủy",
+          style: "cancel"
+        },
+        {
+          text: "Nhắc nhở lịch sự 📝",
+          onPress: async () => {
+            try {
+              // 1. Gửi thông báo trong hệ thống
+              await sendPaymentReminder(
+                member.id,
+                currentUser.fullName,
+                bill.title,
+                member.remainingAmount,
+                bill.id
+              );
+
+              // 2. Sao chép nội dung đòi nợ vào Clipboard
+              const bankInfoStr = bank.bankName ? `qua tài khoản ${bank.bankName} - ${bank.accountNumber} (${bank.owner})` : "trực tiếp";
+              const reminderMessage = `${member.name} ơi, thanh toán hóa đơn "${bill.title}" giúp mình nhé. Số tiền: ${member.remainingAmount.toLocaleString("vi-VN")} đ. Chuyển khoản ${bankInfoStr} với nội dung chuyển khoản: ${bank.transferContent}. Cảm ơn bạn!`;
+              
+              await Clipboard.setStringAsync(reminderMessage);
+
+              Alert.alert(
+                "Đã gửi nhắc nhở đòi nợ! ⏰",
+                `1. Hệ thống đã gửi thông báo nhắc nợ lịch sự đến ${member.name}.\n\n2. Đã sao chép tin nhắn đòi nợ vào khay nhớ tạm để gửi qua Zalo/Messenger!`,
+                [{ text: "Đồng ý" }]
+              );
+            } catch (e) {
+              Alert.alert("Lỗi", "Không thể gửi nhắc nhở.");
+            }
+          }
+        },
+        {
+          text: "Văn khấn đòi nợ 🙏😂",
+          onPress: async () => {
+            try {
+              // Tạo nội dung văn khấn đòi nợ hài hước
+              const bankInfoStr = bank.bankName ? `qua tài khoản ${bank.bankName} - ${bank.accountNumber} (${bank.owner})` : "trực tiếp";
+              const amountStr = `${member.remainingAmount.toLocaleString("vi-VN")} đ`;
+              const prayerMessage = `Nam mô A Di Đà Phật! Con lạy chín phương trời, con lạy mười phương đất. Con lạy thí chủ ${member.name} tôn kính! Hôm ấy trời quang mây tạnh, chúng ta cùng ăn uống vui vẻ nghĩa tình, thanh toán hóa đơn "${bill.title}". Nay hóa đơn đã đến kỳ kết sổ, số tiền tuy nhỏ chỉ có ${amountStr}, nhưng là mồ hôi nước mắt, là tiền ăn sáng, tiền đổ xăng của con. Nay con cúi đầu xin thí chủ từ bi hỷ xả, thương xót thân con nghèo khó, mau mau chuyển khoản ${bankInfoStr} với nội dung "${bank.transferContent || "CHIA BILL"}" để giải thoát cho khoản nợ này. Kính mong thí chủ sớm thanh toán, tâm can con mới đặng bình an. Con xin thành tâm cảm tạ thí chủ cát tường vạn sự như ý!`;
+
+              // Phát giọng đọc TTS chậm và trầm (dramatize) để chủ nợ nghe thử
+              Speech.stop();
+              Speech.speak(prayerMessage, {
+                language: "vi-VN",
+                pitch: 0.8,
+                rate: 0.8
+              });
+
+              Alert.alert(
+                "Đang nghe thử văn khấn đòi nợ! 🙏",
+                `Bài văn khấn đòi nợ đang phát. Bấm "Đồng ý" để tắt tiếng, sao chép văn bản vào khay nhớ tạm và gửi trực tiếp sang tài khoản của ${member.name}.`,
+                [
+                  {
+                    text: "Đồng ý",
+                    onPress: async () => {
+                      Speech.stop();
+                      try {
+                        // 1. Gửi thông báo loại PRAYER cho con nợ
+                        await sendPaymentReminder(
+                          member.id,
+                          currentUser.fullName,
+                          bill.title,
+                          member.remainingAmount,
+                          bill.id,
+                          prayerMessage
+                        );
+
+                        // 2. Sao chép vào clipboard để gửi mạng xã hội
+                        await Clipboard.setStringAsync(prayerMessage);
+                      } catch (err) {
+                        console.log("Lỗi gửi văn khấn:", err);
+                      }
+                    }
+                  }
+                ]
+              );
+            } catch (e) {
+              Alert.alert("Lỗi", "Không thể tạo văn khấn.");
             }
           }
         }
@@ -155,13 +251,14 @@ export default function BillDetailScreen({ onNavigate, routeParams, currentUser 
           members={members}
           showSettleButton={isOwner}
           onSettle={handleSettlePayment}
+          onRemind={handleRemindPayment}
         />
 
         <BankInfoCard bank={bank} />
       </ScrollView>
 
       {/* QR BUTTON */}
-      <View style={tw`absolute bottom-20 left-0 right-0 px-4`}>
+      <View style={[tw`absolute left-0 right-0 px-4`, { bottom: 56 + insets.bottom + 12 }]}>
         <Button
           mode="contained"
           icon={() => <QrCode size={18} color="white" style={tw`mr-2`} />}
