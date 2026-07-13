@@ -3,6 +3,9 @@
 # dependencies
 node_modules/
 
+# Server
+share-bill-server/
+
 # Expo
 .expo/
 dist/

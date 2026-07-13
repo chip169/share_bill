@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, SafeAreaView, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView, Alert } from "react-native";
+import { View, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView, Alert } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { TextInput, Button, Text } from "react-native-paper";
 import { Mail, Lock, Eye, EyeOff, Sparkles, ChevronLeft } from "lucide-react-native";
 import tw from "twrnc";

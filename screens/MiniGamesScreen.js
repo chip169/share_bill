@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import { View, SafeAreaView, ScrollView, TouchableOpacity, Animated, Easing, StyleSheet, Alert, Modal } from "react-native";
+import { View, ScrollView, TouchableOpacity, Animated, Easing, StyleSheet, Alert, Modal } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, Text, Card, ActivityIndicator } from "react-native-paper";
 import { ChevronLeft, RotateCw, Award } from "lucide-react-native";
 import tw from "twrnc";

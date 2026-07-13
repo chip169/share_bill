@@ -1,16 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { SafeAreaView, ScrollView, ActivityIndicator, View, TouchableOpacity, Alert } from "react-native";
+import { ScrollView, ActivityIndicator, View, TouchableOpacity, Alert } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import tw from "twrnc";
 import HomeHeader from "../components/home/HomeHeader";
 import ExpenseCard from "../components/history/ExpenseCard";
-import { fetchUserProfile, fetchHistoryExpenses, joinExpenseByCode } from "../services/api";
-import { sendLocalNotification } from "../services/notifications";
+import { fetchUserProfile, fetchHistoryExpenses, joinExpenseByCode, fetchNotifications, markNotificationRead } from "../services/api";
+import { sendLocalNotification, scheduleLocalNotification, cancelScheduledNotification } from "../services/notifications";
+import * as Speech from "expo-speech";
 import BottomNav from "../components/navigation/BottomNav";
 
 import { Text, FAB, Card, TextInput, Button } from "react-native-paper";
 import { Home, FileText, User, Plus, Camera, Dices, PlusCircle } from "lucide-react-native";
 
+let lastRemindedUserId = null;
+
 export default function HomeScreen({ onNavigate, currentUser }) {
+  const insets = useSafeAreaInsets();
   const [user, setUser] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,13 +67,65 @@ export default function HomeScreen({ onNavigate, currentUser }) {
     if (!currentUser) return;
     setLoading(true);
     try {
-      const [profile, history] = await Promise.all([
+      const [profile, history, notifs] = await Promise.all([
         fetchUserProfile(currentUser.id),
         fetchHistoryExpenses(currentUser.id),
+        fetchNotifications(currentUser.id).catch(() => []),
       ]);
 
       setUser(profile);
       setExpenses(history);
+
+      // Tự động phát giọng đọc văn khấn đòi nợ nếu có thông báo văn khấn chưa đọc khi vào app
+      const unreadPrayer = notifs.find((n) => !n.isRead && n.content && n.content.includes("Nam mô"));
+      if (unreadPrayer) {
+        // Đánh dấu đã đọc ngay lập tức để không bị phát lặp lại lần sau
+        await markNotificationRead(unreadPrayer.id).catch(() => {});
+
+        setTimeout(() => {
+          Speech.stop();
+          Speech.speak(unreadPrayer.content, {
+            language: "vi-VN",
+            pitch: 0.8,
+            rate: 0.8,
+          });
+          Alert.alert(
+            "CẢNH BÁO ĐÒI NỢ 🙏🚨",
+            unreadPrayer.content,
+            [{ text: "Tắt giọng đọc", onPress: () => Speech.stop() }]
+          );
+        }, 1200);
+      }
+
+      // Nhắc nhở thanh toán nếu có hóa đơn chưa trả khi vào app
+      if (profile.totalToPay > 0) {
+        if (lastRemindedUserId !== currentUser.id) {
+          lastRemindedUserId = currentUser.id;
+          setTimeout(() => {
+            Alert.alert(
+              "Nhắc nhở thanh toán ⚠️",
+              `Bạn đang có các khoản hóa đơn chưa thanh toán với tổng số tiền nợ là ${profile.totalToPay.toLocaleString("vi-VN")} đ. Vui lòng thanh toán sớm!`,
+              [{ text: "Đồng ý" }]
+            );
+            sendLocalNotification(
+              "Nhắc nhở thanh toán! 💵",
+              `Bạn đang có các khoản nợ chưa trả trị giá ${profile.totalToPay.toLocaleString("vi-VN")} đ.`
+            );
+          }, 800);
+        }
+
+        // LÊN LỊCH THÔNG BÁO TỪ XA KHI ĐÓNG APP:
+        // Hẹn lịch nhắc nhở sau 15 giây (để dễ demo/kiểm thử). Trong thực tế có thể thay bằng 24h (24 * 3600).
+        scheduleLocalNotification(
+          "unpaid_bill_reminder",
+          "Nhắc nhở hóa đơn chưa trả! ⏰",
+          `Bạn vẫn chưa thanh toán khoản nợ trị giá ${profile.totalToPay.toLocaleString("vi-VN")} đ. Hãy mở ứng dụng để trả nợ nhé!`,
+          24 * 3600
+        );
+      } else {
+        // Nếu đã trả hết nợ, hủy lịch nhắc nhở
+        cancelScheduledNotification("unpaid_bill_reminder");
+      }
     } catch (error) {
       console.log("Lỗi tải dữ liệu màn hình chính:", error);
     } finally {
@@ -233,7 +290,7 @@ export default function HomeScreen({ onNavigate, currentUser }) {
       {/* Floating Plus button */}
       <FAB
         icon={() => <Plus size={24} color="white" />}
-        style={tw`absolute right-5 bottom-20 bg-sky-500 rounded-full shadow-lg shadow-sky-500/30`}
+        style={[tw`absolute right-5 bg-sky-500 rounded-full shadow-lg shadow-sky-500/30`, { bottom: 56 + insets.bottom + 16 }]}
         onPress={() => onNavigate("createbill")}
       />
 

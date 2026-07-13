@@ -2,6 +2,7 @@
   "expo": {
     "name": "share_bill",
     "slug": "snack-1fcb878f-25fc-49e8-994e-d167fb6a2192",
+    "owner": "hieukxhe",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,12 +14,14 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "bundleIdentifier": "com.sharebill.app",
       "supportsTablet": true,
       "infoPlist": {
         "NSFaceIDUsageDescription": "ShareBill cần quyền FaceID để giúp bạn đăng nhập nhanh chóng và bảo mật tài khoản."
       }
     },
     "android": {
+      "package": "com.sharebill.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -29,7 +32,13 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-secure-store"
-    ]
+      "expo-secure-store",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "bc86af58-a136-4028-bad7-15e9940620bc"
+      }
+    }
   }
 }

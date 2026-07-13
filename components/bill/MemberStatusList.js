@@ -3,7 +3,7 @@ import { View, Text } from "react-native";
 import tw from "twrnc";
 import MemberStatusItem from "./MemberStatusItem";
 
-export default function MemberStatusList({ members, showSettleButton, onSettle }) {
+export default function MemberStatusList({ members, showSettleButton, onSettle, onRemind }) {
   const paidCount = members.filter((member) => member.paid).length;
   const unpaidCount = members.length - paidCount;
 
@@ -33,6 +33,7 @@ export default function MemberStatusList({ members, showSettleButton, onSettle }
           member={member} 
           showSettleButton={showSettleButton}
           onSettle={onSettle}
+          onRemind={onRemind}
         />
       ))}
     </View>

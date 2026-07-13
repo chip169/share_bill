@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://192.168.1.3:9999";
+const API_BASE_URL = "https://share-bill-server.onrender.com";
 
 // Helper to format date
 const formatDate = (isoString) => {
@@ -610,8 +610,8 @@ export const fetchUserByIdentifier = async (identifier) => {
     const clean = (identifier || "").trim().toLowerCase();
     const res = await axios.get(`${API_BASE_URL}/users`);
     const users = res.data;
-    const user = users.find(u => 
-      (u.phone && u.phone.trim() === clean) || 
+    const user = users.find(u =>
+      (u.phone && u.phone.trim() === clean) ||
       (u.email && u.email.trim().toLowerCase() === clean)
     );
     return user || null;
@@ -719,8 +719,7 @@ export const scanReceiptOCR = async (base64Data) => {
 export const parseOcrTextToItems = (ocrText) => {
   if (!ocrText) return [];
   const lines = ocrText.split(/\r?\n/);
-  const names = [];
-  const prices = [];
+  const items = [];
 
   // Từ khóa bỏ qua (hóa đơn tổng, địa chỉ, cửa hàng, thông tin hành chính...)
   const skipKeywords = [
@@ -798,7 +797,14 @@ export const parseOcrTextToItems = (ocrText) => {
     "khach le",
     "ghé là mê",
     "ghe la me",
+    "no. ",
+    "no:",
+    "stt",
+    "ký hiệu",
+    "ky hieu"
   ];
+
+  let itemIndex = 1;
 
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i].trim();
@@ -810,59 +816,287 @@ export const parseOcrTextToItems = (ocrText) => {
     );
     if (shouldSkip) continue;
 
-    // Tìm số tiền ở cuối dòng
-    const priceRegex = /\b(\d+[\d.,]*)\s*(k|đ|đ.|d|vnd|vnd.)?\s*$/i;
-    const match = line.match(priceRegex);
+    // Tìm tất cả cụm số trong dòng (chấp nhận dấu phân cách nghìn . hoặc ,)
+    const numRegex = /\b\d+[\d.,]*\b/g;
+    const matches = line.match(numRegex) || [];
 
-    if (match) {
-      const rawPrice = match[1];
-      const suffix = match[2] ? match[2].toLowerCase() : "";
+    if (matches.length === 0) continue;
 
-      let cleanedPriceStr = rawPrice.replace(/[.,\s]/g, "");
-      let price = parseFloat(cleanedPriceStr) || 0;
-
-      if (suffix === "k") {
-        price = price * 1000;
+    // Chuẩn hóa các số
+    const numbersInfo = matches.map((m) => {
+      let cleaned = m;
+      if (m.includes(".") && m.split(".")[1].length === 3) {
+        cleaned = m.replace(/\./g, "");
+      } else if (m.includes(",") && m.split(",")[1].length === 3) {
+        cleaned = m.replace(/,/g, "");
+      } else {
+        cleaned = m.replace(/,/g, ".");
       }
+      return {
+        raw: m,
+        value: parseFloat(cleaned) || 0,
+      };
+    });
 
-      const namePart = line.substring(0, line.lastIndexOf(match[0])).trim();
-      let cleanName = namePart.replace(/^[\s\d.\-#*+]+/g, ""); // bỏ số thứ tự
-      cleanName = cleanName.replace(/[:\-+=._~]+$/g, "").trim();
-
-      const hasLetters = /[a-zA-Z\u00C0-\u024F\u1E00-\u1EFF]/.test(cleanName);
-      const hasLongNum = /\d{4,}/.test(cleanName.replace(/[.,\s]/g, ""));
-
-      // Chỉ chấp nhận giá từ 1,000đ đến 10,000,000đ để lọc bỏ số điện thoại, số tài khoản...
-      if (price >= 1000 && price <= 10000000) {
-        prices.push(price);
-        if (hasLetters && cleanName.length >= 2 && !hasLongNum) {
-          names.push(cleanName);
+    // Xác định phần tên món (phần chữ trước khi các con số giá trị xuất hiện)
+    let namePart = line;
+    let firstPriceIndex = line.length;
+    for (let numInfo of numbersInfo) {
+      if (numInfo.value >= 1000) {
+        const idx = line.indexOf(numInfo.raw);
+        if (idx !== -1 && idx < firstPriceIndex) {
+          firstPriceIndex = idx;
         }
       }
-    } else {
-      // Dòng không chứa giá tiền ở cuối, kiểm tra xem có phải tên món không
-      let cleanName = line.replace(/^[\s\d.\-#*+]+/g, ""); // bỏ số thứ tự
-      cleanName = cleanName.replace(/[:\-+=._~]+$/g, "").trim();
-      const hasLetters = /[a-zA-Z\u00C0-\u024F\u1E00-\u1EFF]/.test(cleanName);
-      const hasLongNum = /\d{4,}/.test(cleanName.replace(/[.,\s]/g, ""));
+    }
 
-      if (hasLetters && cleanName.length >= 2 && !hasLongNum) {
-        names.push(cleanName);
+    if (firstPriceIndex > 0) {
+      namePart = line.substring(0, firstPriceIndex).trim();
+    }
+
+    let cleanName = namePart.replace(/^[\s\d.\-#*+]+/g, ""); // Bỏ số thứ tự
+    cleanName = cleanName.replace(/[:\-+=._~]+$/g, "").trim();
+
+    const hasLetters = /[a-zA-Z\u00C0-\u024F\u1E00-\u1EFF]/.test(cleanName);
+    if (!hasLetters || cleanName.length < 2) continue;
+
+    let quantity = 1;
+    let unitPrice = 0;
+
+    // Chỉ giữ lại các số nằm sau hoặc đồng hành cùng tên món
+    const cleanNumbers = numbersInfo.filter((numInfo) => {
+      const idx = line.indexOf(numInfo.raw);
+      return idx >= firstPriceIndex;
+    });
+
+    if (cleanNumbers.length >= 3) {
+      // Có dạng Qty, Unit Price, Total
+      const vals = cleanNumbers.map((n) => n.value);
+      const val3 = vals[vals.length - 1]; // Thành tiền
+      const val2 = vals[vals.length - 2]; // Đơn giá
+      const val1 = vals[vals.length - 3]; // Số lượng
+
+      if (Math.abs(val1 * val2 - val3) < Math.max(val3 * 0.05, 10)) {
+        quantity = val1;
+        unitPrice = val2;
+      } else {
+        unitPrice = val2 >= 1000 ? val2 : val3;
+        quantity = val1 < 1000 ? val1 : 1;
       }
+    } else if (cleanNumbers.length === 2) {
+      const val1 = cleanNumbers[0].value;
+      const val2 = cleanNumbers[1].value;
+
+      if (val1 < 100 && val2 >= 1000) {
+        quantity = val1;
+        unitPrice = val2;
+      } else if (val1 >= 1000 && val2 >= 1000) {
+        const ratio = val2 / val1;
+        const roundedRatio = Math.round(ratio);
+        if (
+          roundedRatio > 1 &&
+          roundedRatio < 20 &&
+          Math.abs(ratio - roundedRatio) < 0.1
+        ) {
+          quantity = roundedRatio;
+          unitPrice = val1;
+        } else {
+          unitPrice = val1;
+        }
+      } else {
+        unitPrice = Math.max(val1, val2);
+      }
+    } else if (cleanNumbers.length === 1) {
+      unitPrice = cleanNumbers[0].value;
+      quantity = 1;
+    }
+
+    if (unitPrice >= 500 && unitPrice <= 20000000) {
+      items.push({
+        id: itemIndex.toString(),
+        name: cleanName,
+        price: unitPrice.toString(),
+        quantity: quantity.toString(),
+        sharedWith: [],
+      });
+      itemIndex++;
     }
   }
 
-  // Ghép cặp tên và giá theo chỉ số
-  const items = [];
-  const minLength = Math.min(names.length, prices.length);
-  for (let i = 0; i < minLength; i++) {
-    items.push({
-      id: (i + 1).toString(),
-      name: names[i],
-      price: prices[i].toString(),
-      sharedWith: [],
-    });
-  }
-
   return items;
+};
+
+// 18. Guess bill category from scanned item names
+export const guessCategoryFromItems = (items) => {
+  if (!items || items.length === 0) return "c1"; // Mặc định là ăn uống
+
+  // Từ khóa đặc trưng của từng danh mục
+  const keywords = {
+    c2: [
+      "vé",
+      "ve ",
+      "hotel",
+      "khách sạn",
+      "khach san",
+      "homestay",
+      "taxi",
+      "bus",
+      "xe khách",
+      "xe khach",
+      "máy bay",
+      "may bay",
+      "phòng",
+      "phong",
+      "lưu trú",
+      "di chuyển",
+      "xăng",
+      "xang",
+      "toll",
+    ],
+    c3: [
+      "quần",
+      "quan",
+      "áo",
+      "ao ",
+      "giày",
+      "giay",
+      "dép",
+      "dep",
+      "siêu thị",
+      "sieu thi",
+      "shampoo",
+      "dầu gội",
+      "tắm",
+      "sách",
+      "sach",
+      "vở",
+      "bút",
+      "but",
+      "túi",
+      "tui",
+      "bag",
+      "mỹ phẩm",
+      "my pham",
+      "son",
+      "kem",
+      "chợ",
+      "cho ",
+    ],
+    c4: [
+      "vé xem phim",
+      "công viên",
+      "cong vien",
+      "karaoke",
+      "bar",
+      "pub",
+      "game",
+      "nintendo",
+      "playstation",
+      "cinema",
+      "rap chieu phim",
+      "rạp chiếu phim",
+      "cáp treo",
+      "cap treo",
+      "golf",
+      "bida",
+      "bi-a",
+    ],
+  };
+
+  const scores = { c1: 0, c2: 0, c3: 0, c4: 0 };
+  scores.c1 = 1; // Ăn uống có trọng số nền mặc định
+
+  items.forEach((item) => {
+    const name = item.name.toLowerCase();
+
+    // Các từ khóa ăn uống
+    const foodKeywords = [
+      "cơm",
+      "com ",
+      "bún",
+      "bun ",
+      "phở",
+      "pho ",
+      "lẩu",
+      "lau ",
+      "nướng",
+      "nuong",
+      "gà",
+      "ga ",
+      "vịt",
+      "vit",
+      "lợn",
+      "lon ",
+      "bò",
+      "bo ",
+      "cá",
+      "ca ",
+      "rau",
+      "canh",
+      "nước",
+      "nuoc",
+      "cà phê",
+      "cafe",
+      "trà",
+      "tra ",
+      "sinh tố",
+      "soda",
+      "bia",
+      "rượu",
+      "ruou",
+      "ăn",
+      "an ",
+      "uống",
+      "uong",
+      "bánh",
+      "banh",
+      "kẹo",
+      "keo",
+      "sữa",
+      "sua",
+      "nem",
+      "chả",
+      "cha ",
+    ];
+    foodKeywords.forEach((k) => {
+      if (name.includes(k)) scores.c1 += 2;
+    });
+
+    Object.keys(keywords).forEach((catId) => {
+      keywords[catId].forEach((k) => {
+        if (name.includes(k)) scores[catId] += 3;
+      });
+    });
+  });
+
+  let bestCat = "c1";
+  let maxScore = 0;
+  Object.keys(scores).forEach((catId) => {
+    if (scores[catId] > maxScore) {
+      maxScore = scores[catId];
+      bestCat = catId;
+    }
+  });
+
+  return bestCat;
+};
+
+export const sendPaymentReminder = async (debtorUserId, creatorName, billTitle, owedAmount, expenseId, customContent = null) => {
+  try {
+    const notifObj = {
+      id: "n_" + Math.random().toString(36).slice(2, 11),
+      userId: debtorUserId,
+      title: "Nhắc nhở thanh toán ⏰",
+      content: customContent || `Thành viên ${creatorName} nhắc bạn thanh toán số tiền ${owedAmount.toLocaleString("vi-VN")} đ cho hóa đơn "${billTitle}".`,
+      type: "EXPENSE",
+      relatedId: expenseId,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+    };
+    const res = await axios.post(`${API_BASE_URL}/notifications`, notifObj);
+    return res.data;
+  } catch (error) {
+    console.error("Lỗi sendPaymentReminder:", error);
+    throw error;
+  }
 };

@@ -1,6 +1,8 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { View, Text, TouchableOpacity, Alert } from "react-native";
 import tw from "twrnc";
+import { Copy } from "lucide-react-native";
+import * as Clipboard from "expo-clipboard";
 
 const CATEGORY_MAP = {
   c1: { name: "Ăn uống", icon: "🍔" },
@@ -28,7 +30,7 @@ export default function BillInfoCard({ bill }) {
         </View>
       </View>
 
-      <InfoRow label="Mã hóa đơn" value={bill.billCode} />
+      <InfoRow label="Mã hóa đơn" value={bill.billCode} isCopyable />
 
       <InfoRow label="Ngày tạo" value={bill.createdAt} />
 
@@ -39,12 +41,28 @@ export default function BillInfoCard({ bill }) {
   );
 }
 
-function InfoRow({ label, value }) {
+function InfoRow({ label, value, isCopyable }) {
+  const handleCopy = async () => {
+    if (!isCopyable || !value) return;
+    await Clipboard.setStringAsync(value);
+    Alert.alert("Thành công 🎉", `Đã sao chép mã hóa đơn "${value}" vào khay nhớ tạm!`);
+  };
+
   return (
     <View style={tw`flex-row justify-between items-center mb-3`}>
       <Text style={tw`text-slate-400 text-xs font-medium`}>{label}</Text>
 
-      <Text style={tw`text-slate-800 font-semibold text-sm`}>{value}</Text>
+      {isCopyable ? (
+        <TouchableOpacity
+          onPress={handleCopy}
+          style={tw`flex-row items-center bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg gap-1`}
+        >
+          <Text style={tw`text-slate-800 font-bold text-xs uppercase`}>{value}</Text>
+          <Copy size={13} color="#64748b" />
+        </TouchableOpacity>
+      ) : (
+        <Text style={tw`text-slate-800 font-semibold text-sm`}>{value}</Text>
+      )}
     </View>
   );
 }

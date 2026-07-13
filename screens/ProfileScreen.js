@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert, Image } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Image } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Portal, Dialog, Button, TextInput } from "react-native-paper";
 import { CreditCard, QrCode, Bell, Settings, HelpCircle, LogOut } from "lucide-react-native";
 import tw from "twrnc";
@@ -9,6 +10,7 @@ import PersonalInfo from "../components/profile/PersonalInfo";
 import MenuItem from "../components/profile/MenuItem";
 import { fetchUserProfile, updateUserProfile, fetchNotifications, markNotificationRead, fetchBankList } from "../services/api";
 import BottomNav from "../components/navigation/BottomNav";
+import * as Speech from "expo-speech";
 
 const POPULAR_BANKS = [
   { code: "MB", shortName: "MBBank", name: "Ngân hàng TMCP Quân Đội", bin: "970422", logo: "https://api.vietqr.io/img/MB.png" },
@@ -390,7 +392,7 @@ const ProfileScreen = ({ onNavigate, currentUser, onLogout }) => {
         </Dialog>
 
         {/* Modal xem danh sách Thông báo */}
-        <Dialog visible={showNotifModal} onDismiss={() => setShowNotifModal(false)} style={tw`bg-white rounded-3xl max-h-[80%]`}>
+        <Dialog visible={showNotifModal} onDismiss={() => { setShowNotifModal(false); Speech.stop(); }} style={tw`bg-white rounded-3xl max-h-[80%]`}>
           <Dialog.Title style={tw`font-bold text-slate-800`}>Thông báo</Dialog.Title>
           <Dialog.Content>
             {loadingNotif ? (
@@ -415,6 +417,25 @@ const ProfileScreen = ({ onNavigate, currentUser, onLogout }) => {
                       <Text style={tw`text-slate-500 text-xs mt-1`}>
                         {notif.content}
                       </Text>
+                      {notif.content.includes("Nam mô") && (
+                        <TouchableOpacity
+                          onPress={() => {
+                            Speech.stop();
+                            Speech.speak(notif.content, {
+                              language: "vi-VN",
+                              pitch: 0.8,
+                              rate: 0.8
+                            });
+                            Alert.alert("Nam mô A Di Đà Phật 🙏", "Đang tụng văn khấn đòi nợ...", [
+                              { text: "Dừng đọc", onPress: () => Speech.stop(), style: "destructive" },
+                              { text: "Nghe tiếp" }
+                            ]);
+                          }}
+                          style={tw`mt-2 bg-orange-500 px-3 py-1.5 rounded-full w-[120px] items-center`}
+                        >
+                          <Text style={tw`text-white text-[10px] font-bold`}>🔊 Nghe văn khấn</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -422,7 +443,7 @@ const ProfileScreen = ({ onNavigate, currentUser, onLogout }) => {
             )}
           </Dialog.Content>
           <Dialog.Actions style={tw`pb-4 pr-4`}>
-            <Button onPress={() => setShowNotifModal(false)} labelStyle={tw`text-sky-500 font-bold`}>Đóng</Button>
+            <Button onPress={() => { setShowNotifModal(false); Speech.stop(); }} labelStyle={tw`text-sky-500 font-bold`}>Đóng</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
