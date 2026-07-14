@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Portal, Dialog, Button, TextInput } from "react-native-paper";
-import { CreditCard, QrCode, Bell, Settings, HelpCircle, LogOut } from "lucide-react-native";
+import { Portal, Dialog, Modal, Button, TextInput } from "react-native-paper";
+import { CreditCard, QrCode, Bell, Settings, HelpCircle, LogOut, Search } from "lucide-react-native";
 import tw from "twrnc";
 
 import Header from "../components/profile/Header";
@@ -26,19 +26,19 @@ const POPULAR_BANKS = [
 ];
 
 const getVietQrBankCode = (bankName) => {
-  if (!bankName) return "VCB";
+  if (!bankName) return "970436"; // VCB BIN
   const name = bankName.trim().toUpperCase();
-  if (name.includes("VIETCOMBANK") || name === "VCB") return "VCB";
-  if (name.includes("MB") || name.includes("MILITARY")) return "MB";
-  if (name.includes("TECHCOMBANK") || name === "TCB") return "TCB";
-  if (name.includes("BIDV")) return "BIDV";
-  if (name.includes("VIETIN") || name === "CTG" || name === "ICB") return "ICB";
-  if (name.includes("AGRI") || name === "VARB") return "AGRIBANK";
-  if (name.includes("VP") || name === "VPB") return "VPB";
-  if (name.includes("TP") || name === "TPB") return "TPB";
-  if (name.includes("ACB")) return "ACB";
-  if (name.includes("SACOMBANK") || name === "STB") return "STB";
-  if (name.includes("VIB")) return "VIB";
+  if (name.includes("VIETCOMBANK") || name === "VCB") return "970436"; // Vietcombank BIN
+  if (name.includes("MB") || name.includes("MILITARY")) return "970422"; // MBBank BIN
+  if (name.includes("TECHCOMBANK") || name === "TCB") return "970407"; // Techcombank BIN
+  if (name.includes("BIDV")) return "970418"; // BIDV BIN
+  if (name.includes("VIETIN") || name === "CTG" || name === "ICB") return "970415"; // VietinBank BIN
+  if (name.includes("AGRI") || name === "VARB") return "970405"; // Agribank BIN
+  if (name.includes("VP") || name === "VPB") return "970432"; // VPBank BIN
+  if (name.includes("TP") || name === "TPB") return "970423"; // TPBank BIN
+  if (name.includes("ACB")) return "970416"; // ACB BIN
+  if (name.includes("SACOMBANK") || name === "STB") return "970403"; // Sacombank BIN
+  if (name.includes("VIB")) return "970441"; // VIB BIN
   return name.replace(/\s+/g, "");
 };
 
@@ -319,51 +319,53 @@ const ProfileScreen = ({ onNavigate, currentUser, onLogout }) => {
           </Dialog.Actions>
         </Dialog>
 
-        {/* Bank Picker Dialog */}
-        <Dialog visible={showBankPicker} onDismiss={() => { setShowBankPicker(false); setBankSearch(""); }} style={tw`bg-white rounded-3xl max-h-[80%]`}>
-          <Dialog.Title style={tw`font-bold text-slate-800`}>Chọn Ngân hàng</Dialog.Title>
-          <Dialog.Content style={tw`gap-3`}>
-            <TextInput
-              label="Tìm kiếm ngân hàng..."
-              value={bankSearch}
-              onChangeText={setBankSearch}
-              mode="outlined"
-              outlineColor="#e2e8f0"
-              activeOutlineColor="#0ea5e9"
-              style={tw`bg-white text-slate-700 mb-2 h-11 text-xs`}
-              left={<TextInput.Icon icon={() => <Search size={18} color="#94a3b8" />} />}
-              dense
-            />
-            <ScrollView style={tw`max-h-80`}>
-              {filteredBanks.length === 0 ? (
-                <View style={tw`items-center py-6`}>
-                  <Text style={tw`text-slate-400 text-sm`}>Không tìm thấy ngân hàng!</Text>
-                </View>
-              ) : (
-                filteredBanks.map((b) => (
-                  <TouchableOpacity
-                    key={b.bin}
-                    onPress={() => {
-                      setEditBankName(b.code);
-                      setShowBankPicker(false);
-                      setBankSearch("");
-                    }}
-                    style={tw`flex-row items-center py-3 border-b border-slate-50`}
-                  >
-                    <Image source={{ uri: b.logo }} style={tw`w-12 h-6 mr-3`} resizeMode="contain" />
-                    <View style={tw`flex-1`}>
-                      <Text style={tw`text-slate-800 font-bold text-sm`}>{b.shortName}</Text>
-                      <Text style={tw`text-slate-400 text-[10px]`} numberOfLines={1}>{b.name}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))
-              )}
-            </ScrollView>
-          </Dialog.Content>
-          <Dialog.Actions style={tw`pb-4 pr-4`}>
+        {/* Bank Picker Modal */}
+        <Modal
+          visible={showBankPicker}
+          onDismiss={() => { setShowBankPicker(false); setBankSearch(""); }}
+          contentContainerStyle={tw`bg-white rounded-3xl mx-5 p-5 h-[65%] flex-col`}
+        >
+          <Text style={tw`font-bold text-lg text-slate-800 mb-3`}>Chọn Ngân hàng</Text>
+          <TextInput
+            label="Tìm kiếm ngân hàng..."
+            value={bankSearch}
+            onChangeText={setBankSearch}
+            mode="outlined"
+            outlineColor="#e2e8f0"
+            activeOutlineColor="#0ea5e9"
+            style={tw`bg-white text-slate-700 mb-4 h-11 text-xs`}
+            left={<TextInput.Icon icon={() => <Search size={18} color="#94a3b8" />} />}
+            dense
+          />
+          <ScrollView style={tw`flex-grow`} showsVerticalScrollIndicator={false}>
+            {filteredBanks.length === 0 ? (
+              <View style={tw`items-center py-6`}>
+                <Text style={tw`text-slate-400 text-sm`}>Không tìm thấy ngân hàng!</Text>
+              </View>
+            ) : (
+              filteredBanks.map((b) => (
+                <TouchableOpacity
+                  key={b.bin}
+                  onPress={() => {
+                    setEditBankName(b.code);
+                    setShowBankPicker(false);
+                    setBankSearch("");
+                  }}
+                  style={tw`flex-row items-center py-3 border-b border-slate-50`}
+                >
+                  <Image source={{ uri: b.logo }} style={tw`w-12 h-6 mr-3`} resizeMode="contain" />
+                  <View style={tw`flex-1`}>
+                    <Text style={tw`text-slate-800 font-bold text-sm`}>{b.shortName}</Text>
+                    <Text style={tw`text-slate-400 text-[10px]`} numberOfLines={1}>{b.name}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </ScrollView>
+          <View style={tw`border-t border-slate-100 pt-3 mt-3 flex-row justify-end`}>
             <Button onPress={() => { setShowBankPicker(false); setBankSearch(""); }} labelStyle={tw`text-sky-500 font-bold`}>Đóng</Button>
-          </Dialog.Actions>
-        </Dialog>
+          </View>
+        </Modal>
 
         {/* Modal xem QR Code */}
         <Dialog visible={showQrModal} onDismiss={() => setShowQrModal(false)} style={tw`bg-white rounded-3xl`}>

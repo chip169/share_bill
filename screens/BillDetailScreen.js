@@ -18,19 +18,19 @@ import * as Speech from "expo-speech";
 import BottomNav from "../components/navigation/BottomNav";
 
 const getVietQrBankCode = (bankName) => {
-  if (!bankName) return "VCB";
+  if (!bankName) return "970436"; // VCB BIN
   const name = bankName.trim().toUpperCase();
-  if (name.includes("VIETCOMBANK") || name === "VCB") return "VCB";
-  if (name.includes("MB") || name.includes("MILITARY")) return "MB";
-  if (name.includes("TECHCOMBANK") || name === "TCB") return "TCB";
-  if (name.includes("BIDV")) return "BIDV";
-  if (name.includes("VIETIN") || name === "CTG" || name === "ICB") return "ICB";
-  if (name.includes("AGRI") || name === "VARB") return "AGRIBANK";
-  if (name.includes("VP") || name === "VPB") return "VPB";
-  if (name.includes("TP") || name === "TPB") return "TPB";
-  if (name.includes("ACB")) return "ACB";
-  if (name.includes("SACOMBANK") || name === "STB") return "STB";
-  if (name.includes("VIB")) return "VIB";
+  if (name.includes("VIETCOMBANK") || name === "VCB") return "970436"; // Vietcombank BIN
+  if (name.includes("MB") || name.includes("MILITARY")) return "970422"; // MBBank BIN
+  if (name.includes("TECHCOMBANK") || name === "TCB") return "970407"; // Techcombank BIN
+  if (name.includes("BIDV")) return "970418"; // BIDV BIN
+  if (name.includes("VIETIN") || name === "CTG" || name === "ICB") return "970415"; // VietinBank BIN
+  if (name.includes("AGRI") || name === "VARB") return "970405"; // Agribank BIN
+  if (name.includes("VP") || name === "VPB") return "970432"; // VPBank BIN
+  if (name.includes("TP") || name === "TPB") return "970423"; // TPBank BIN
+  if (name.includes("ACB")) return "970416"; // ACB BIN
+  if (name.includes("SACOMBANK") || name === "STB") return "970403"; // Sacombank BIN
+  if (name.includes("VIB")) return "970441"; // VIB BIN
   return name.replace(/\s+/g, "");
 };
 
@@ -239,7 +239,7 @@ export default function BillDetailScreen({ onNavigate, routeParams, currentUser 
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={tw`p-4 pb-44`}
+        contentContainerStyle={tw`p-4 pb-60`}
       >
         <PaymentCard amount={displayAmount} members={bill.members} isOwner={isOwner} />
 
