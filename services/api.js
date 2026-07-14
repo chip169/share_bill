@@ -680,9 +680,10 @@ export const scanReceiptOCR = async (base64Data) => {
   try {
     const formData = new FormData();
     formData.append("apikey", "helloworld");
-    formData.append("language", "vnm"); // Đổi sang 'vnm' theo quy định của OCR.space để tránh lỗi E201
-    formData.append("ocrEngine", "2"); // Sử dụng Engine 2 tối ưu cho tiếng Việt có dấu
-    formData.append("isOverlayRequired", "false");
+    formData.append("language", "vnm"); // Mã ngôn ngữ cho tiếng Việt của Engine 2 trong OCR.space là 'vnm'
+    formData.append("OCREngine", "2"); // Tên tham số bắt buộc phải viết hoa đúng 'OCREngine' để kích hoạt Engine 2
+    formData.append("isTable", "true"); // Kích hoạt nhận diện dạng bảng để căn chỉnh thẳng hàng các cột thông tin
+    formData.append("isOverlayRequired", "true"); // Bắt buộc bật overlay tọa độ để Engine 2 định hình bảng chính xác
     formData.append("detectOrientation", "true");
     formData.append("scale", "true");
     formData.append("base64Image", `data:image/jpeg;base64,${base64Data}`);
@@ -781,10 +782,21 @@ export const parseOcrTextToItems = (ocrText) => {
     "phone:",
     "hóa đơn",
     "hoa don",
-    "ngày",
-    "ngay",
-    "giờ",
-    "gio",
+    "ngày: ",
+    "ngay: ",
+    "ngày bán",
+    "ngay ban",
+    "ngày lập",
+    "ngay lap",
+    "ngày xuất",
+    "ngay xuat",
+    "giờ vào",
+    "gio vao",
+    "giờ ra",
+    "gio ra",
+    "t/gian",
+    "thời gian",
+    "thoi gian",
     "nhân viên",
     "nhan vien",
     "thu ngân",
@@ -838,15 +850,18 @@ export const parseOcrTextToItems = (ocrText) => {
       };
     });
 
-    // Xác định phần tên món (phần chữ trước khi các con số giá trị xuất hiện)
+    // Chúng ta chỉ giữ lại tối đa 3 số cuối cùng của dòng làm số liệu hóa đơn (Số lượng, Đơn giá, Thành tiền)
+    // Mọi con số xuất hiện trước đó đều là một phần của tên món (ví dụ: C2, 7Up, 3D...)
+    const billingNumbersCount = Math.min(numbersInfo.length, 3);
+    const billingNumbers = numbersInfo.slice(numbersInfo.length - billingNumbersCount);
+
     let namePart = line;
     let firstPriceIndex = line.length;
-    for (let numInfo of numbersInfo) {
-      if (numInfo.value >= 1000) {
-        const idx = line.indexOf(numInfo.raw);
-        if (idx !== -1 && idx < firstPriceIndex) {
-          firstPriceIndex = idx;
-        }
+    if (billingNumbers.length > 0) {
+      const firstBillingNum = billingNumbers[0];
+      const idx = line.indexOf(firstBillingNum.raw);
+      if (idx !== -1) {
+        firstPriceIndex = idx;
       }
     }
 
@@ -863,11 +878,8 @@ export const parseOcrTextToItems = (ocrText) => {
     let quantity = 1;
     let unitPrice = 0;
 
-    // Chỉ giữ lại các số nằm sau hoặc đồng hành cùng tên món
-    const cleanNumbers = numbersInfo.filter((numInfo) => {
-      const idx = line.indexOf(numInfo.raw);
-      return idx >= firstPriceIndex;
-    });
+    // Chỉ giữ các con số thuộc nhóm số liệu hóa đơn đã xác định ở trên
+    const cleanNumbers = billingNumbers;
 
     if (cleanNumbers.length >= 3) {
       // Có dạng Qty, Unit Price, Total
@@ -911,7 +923,12 @@ export const parseOcrTextToItems = (ocrText) => {
       quantity = 1;
     }
 
-    if (unitPrice >= 500 && unitPrice <= 20000000) {
+    // Tự động quy đổi nếu giá viết tắt hàng nghìn (ví dụ: 60 -> 60000, 150 -> 150000)
+    if (unitPrice >= 2 && unitPrice < 1000) {
+      unitPrice = unitPrice * 1000;
+    }
+
+    if (unitPrice >= 1000 && unitPrice <= 20000000) {
       items.push({
         id: itemIndex.toString(),
         name: cleanName,

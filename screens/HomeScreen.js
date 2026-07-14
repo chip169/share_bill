@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { ScrollView, ActivityIndicator, View, TouchableOpacity, Alert } from "react-native";
+import React, { useEffect, useState, useRef } from "react";
+import { ScrollView, ActivityIndicator, View, TouchableOpacity, Alert, Animated, Easing } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import tw from "twrnc";
 import HomeHeader from "../components/home/HomeHeader";
@@ -18,6 +18,25 @@ export default function HomeScreen({ onNavigate, currentUser }) {
   const insets = useSafeAreaInsets();
   const [user, setUser] = useState(null);
   const [expenses, setExpenses] = useState([]);
+  const [showRedWarning, setShowRedWarning] = useState(false);
+  const scrollX = useRef(new Animated.Value(350)).current;
+
+  useEffect(() => {
+    if (showRedWarning) {
+      scrollX.setValue(350);
+      Animated.loop(
+        Animated.timing(scrollX, {
+          toValue: -900,
+          duration: 15000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      ).start();
+    } else {
+      scrollX.setValue(350);
+    }
+  }, [showRedWarning]);
+
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("ALL");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
@@ -89,11 +108,7 @@ export default function HomeScreen({ onNavigate, currentUser }) {
             pitch: 0.8,
             rate: 0.8,
           });
-          Alert.alert(
-            "CẢNH BÁO ĐÒI NỢ 🙏🚨",
-            unreadPrayer.content,
-            [{ text: "Tắt giọng đọc", onPress: () => Speech.stop() }]
-          );
+          setShowRedWarning(true);
         }, 1200);
       }
 
@@ -168,6 +183,32 @@ export default function HomeScreen({ onNavigate, currentUser }) {
 
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
+      {/* RED SCROLLING WARNING BANNER */}
+      {showRedWarning && (
+        <View style={tw`bg-red-600 py-3 px-3 flex-row items-center justify-between border-b border-red-700 shadow-md`}>
+          <View style={tw`flex-1 overflow-hidden h-5 justify-center mr-2`}>
+            <Animated.Text
+              style={[
+                tw`text-white font-black text-xs uppercase tracking-wider`,
+                { transform: [{ translateX: scrollX }] }
+              ]}
+              numberOfLines={1}
+            >
+              🚨 CẢNH BÁO ĐÒI NỢ KHẨN CẤP: ĐANG TỤNG VĂN KHẤN ĐÒI TIỀN THÍ CHỦ! HÃY THANH TOÁN NỢ ĐỂ KHAI THÔNG TÀI VẬN! 🚨
+            </Animated.Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => {
+              Speech.stop();
+              setShowRedWarning(false);
+            }}
+            style={tw`bg-white/20 px-2.5 py-1 rounded-lg`}
+          >
+            <Text style={tw`text-white font-black text-[10px]`}>TẮT LOA</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={tw`pb-28`}>
         <HomeHeader
           user={user}

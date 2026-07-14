@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { View, ScrollView, TouchableOpacity, Alert, StyleSheet, Image, Modal, PanResponder } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { TextInput, Button, Text, Card, Checkbox, IconButton, Portal, Dialog, ActivityIndicator } from "react-native-paper";
-import { ChevronLeft, Plus, Trash2, Search, UserPlus, Calendar, ChevronDown, ChevronUp, Camera, Check } from "lucide-react-native";
+import { ChevronLeft, Plus, Trash2, Search, UserPlus, Calendar, ChevronDown, ChevronUp, Camera, Check, X } from "lucide-react-native";
 import tw from "twrnc";
 import { searchUserByUsername, createExpense, updateExpense, fetchBillDetail, scanReceiptOCR, parseOcrTextToItems, guessCategoryFromItems } from "../services/api";
 import { Audio } from "expo-av";
@@ -20,6 +20,7 @@ const CATEGORIES = [
 
 export default function CreateBillScreen({ onNavigate, currentUser, routeParams }) {
   const isEditMode = !!routeParams?.editBillId;
+  const insets = useSafeAreaInsets();
   const [title, setTitle] = useState(routeParams?.title || "");
   const [expenseDate, setExpenseDate] = useState(routeParams?.expenseDate || "");
   const [categoryId, setCategoryId] = useState(routeParams?.categoryId || "c1");
@@ -371,11 +372,23 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
 
   // Remove item row
   const handleRemoveItem = (id) => {
-    if (items.length === 1) {
-      Alert.alert("Thông báo", "Hóa đơn phải có ít nhất 1 món ăn/dịch vụ!");
+    setItems(items.filter((item) => item.id !== id));
+  };
+
+  // Remove member participating in sharing the bill
+  const handleRemoveMember = (id) => {
+    if (id === currentUser.id) {
+      Alert.alert("Không thể xóa", "Bạn không thể xóa chính mình khỏi hóa đơn!");
       return;
     }
-    setItems(items.filter((item) => item.id !== id));
+    setMembers(prev => prev.filter(m => m.id !== id));
+    setItems(prevItems => prevItems.map(item => ({
+      ...item,
+      sharedWith: item.sharedWith.filter(uid => uid !== id)
+    })));
+    if (paidById === id) {
+      setPaidById(currentUser.id);
+    }
   };
 
   // Update item field
@@ -470,15 +483,30 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
       if (result.canceled) return;
 
       const asset = result.assets[0];
-      setCropImageUri(asset.uri);
-      setCropImageWidth(asset.width);
-      setCropImageHeight(asset.height);
+      setScanning(true);
+      setScanStatus("Đang xử lý hình ảnh...");
+
+      // Chuẩn hóa xoay/EXIF của ảnh trước khi đưa vào trình cắt ảnh để tránh lệch tọa độ cắt
+      const normalized = await ImageManipulator.manipulateAsync(
+        asset.uri,
+        [],
+        { format: ImageManipulator.SaveFormat.JPEG }
+      );
+
+      setScanning(false);
+      setScanStatus("");
+
+      setCropImageUri(normalized.uri);
+      setCropImageWidth(normalized.width || 1000);
+      setCropImageHeight(normalized.height || 1500);
       setBoxWidth(200);
       setBoxHeight(280);
       setBoxX(30);
       setBoxY(40);
       setShowCropModal(true);
     } catch (e) {
+      setScanning(false);
+      setScanStatus("");
       console.log(e);
       Alert.alert("Lỗi", "Không thể chọn hình ảnh. Vui lòng thử lại!");
     }
@@ -496,24 +524,36 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
       const cropRight = (boxX + boxWidth) / 260;
       const cropBottom = (boxY + boxHeight) / 360;
 
-      const originX = Math.round(cropLeft * cropImageWidth);
-      const originY = Math.round(cropTop * cropImageHeight);
-      const width = Math.round((cropRight - cropLeft) * cropImageWidth);
-      const height = Math.round((cropBottom - cropTop) * cropImageHeight);
+      // Sanitize coordinates and prevent out-of-bounds errors on all types of image dimensions
+      const safeOriginX = Math.max(0, Math.min(cropImageWidth - 1, Math.round(cropLeft * cropImageWidth)));
+      const safeOriginY = Math.max(0, Math.min(cropImageHeight - 1, Math.round(cropTop * cropImageHeight)));
+      const safeWidth = Math.max(1, Math.min(cropImageWidth - safeOriginX, Math.round((cropRight - cropLeft) * cropImageWidth)));
+      const safeHeight = Math.max(1, Math.min(cropImageHeight - safeOriginY, Math.round((cropBottom - cropTop) * cropImageHeight)));
 
-      // Call ImageManipulator to crop
+      const cropActions = [
+        {
+          crop: {
+            originX: safeOriginX,
+            originY: safeOriginY,
+            width: safeWidth,
+            height: safeHeight
+          }
+        }
+      ];
+
+      // Only downscale (resize) if the crop region is actually wider than 1000px
+      // This preserves high quality for small crops while preventing 413 Payload Too Large on large crops
+      if (safeWidth > 1000) {
+        cropActions.push({
+          resize: {
+            width: 1000
+          }
+        });
+      }
+
       const cropResult = await ImageManipulator.manipulateAsync(
         cropImageUri,
-        [
-          {
-            crop: {
-              originX: Math.max(0, originX),
-              originY: Math.max(0, originY),
-              width: Math.min(cropImageWidth - originX, width),
-              height: Math.min(cropImageHeight - originY, height)
-            }
-          }
-        ],
+        cropActions,
         { base64: true, format: ImageManipulator.SaveFormat.JPEG, quality: 0.8 }
       );
 
@@ -525,16 +565,14 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
 
       setScanStatus("Đang gửi ảnh đã cắt lên máy chủ OCR...");
       const parsedText = await scanReceiptOCR(cropResult.base64);
+      console.log("--- BẮT ĐẦU VĂN BẢN QUÉT ĐƯỢC TỪ OCR ---");
+      console.log(parsedText);
+      console.log("-----------------------------------------");
 
       setScanStatus("AI đang phân tích tên mục & giá tiền...");
       const extractedItems = parseOcrTextToItems(parsedText);
 
-      if (extractedItems.length === 0) {
-        Alert.alert(
-          "Kết quả quét ⚠️",
-          "Không nhận diện được tên món / dịch vụ hay giá tiền cụ thể nào từ ảnh đã cắt. Vui lòng di chuyển hoặc phóng to khung lưới tới vùng chữ rõ nét hơn!"
-        );
-      } else {
+      if (extractedItems.length > 0) {
         // Tag toàn bộ thành viên hiện tại vào các món mới
         const allMemberIds = members.map((m) => m.id);
         const mappedExtractedItems = extractedItems.map(item => ({
@@ -573,13 +611,43 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
             }
           ]
         );
+      } else {
+        if (!parsedText || parsedText.trim() === "") {
+          Alert.alert(
+            "Kết quả quét ⚠️",
+            "Hình ảnh quá mờ hoặc không nhận diện được chữ nào. Vui lòng di chuyển hoặc phóng to khung lưới tới vùng chữ rõ nét hơn!"
+          );
+        } else {
+          Alert.alert(
+            "Kết quả quét ⚠️",
+            "AI nhận dạng được chữ nhưng không trích xuất được món ăn / giá tiền nào. Vui lòng căn chỉnh khung lưới ôm trọn tên món và cột giá tiền rõ nét hơn hoặc nhập thủ công!"
+          );
+        }
       }
     } catch (error) {
-      console.error("Lỗi khi quét bill:", error);
-      Alert.alert(
-        "Lỗi quét hóa đơn ❌",
-        error.message || "Không thể kết nối tới dịch vụ nhận diện hóa đơn. Vui lòng kiểm tra lại mạng!"
-      );
+      console.log("Lỗi khi quét bill:", error);
+      const errMsg = error.message || "";
+      if (errMsg.includes("E201") || errMsg.includes("language") || errMsg.includes("parameter")) {
+        Alert.alert(
+          "Lỗi cấu hình dịch vụ AI ⚙️",
+          "Cấu hình ngôn ngữ nhận diện trên máy chủ AI chưa hợp lệ. Vui lòng thử lại hoặc điền món ăn thủ công!"
+        );
+      } else if (errMsg.includes("413") || errMsg.includes("too large")) {
+        Alert.alert(
+          "Lỗi kích thước ảnh 📁",
+          "Dung lượng ảnh hóa đơn quá lớn. Vui lòng di chuyển khung lưới để cắt vùng nhỏ hơn!"
+        );
+      } else if (errMsg.includes("Network Error") || errMsg.includes("timeout") || errMsg.includes("network")) {
+        Alert.alert(
+          "Lỗi kết nối mạng 🌐",
+          "Không thể kết nối tới máy chủ AI. Vui lòng kiểm tra lại kết nối Internet của thiết bị!"
+        );
+      } else {
+        Alert.alert(
+          "Lỗi quét hóa đơn ❌",
+          "Không thể xử lý ảnh hóa đơn lúc này. Vui lòng thử lại hoặc điền món ăn thủ công!"
+        );
+      }
     } finally {
       setScanning(false);
       setScanStatus("");
@@ -621,6 +689,11 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
   const handleSave = async () => {
     if (!title.trim()) {
       Alert.alert("Thiếu thông tin", "Vui lòng nhập tên hóa đơn!");
+      return;
+    }
+
+    if (items.length === 0) {
+      Alert.alert("Thiếu thông tin", "Hóa đơn phải có ít nhất 1 món / dịch vụ!");
       return;
     }
 
@@ -838,7 +911,12 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                   <Text style={tw`text-white text-[10px] font-bold`}>{m.fullName[0]}</Text>
                 </View>
                 <Text style={tw`text-sky-700 text-xs font-semibold mr-1`}>{m.fullName}</Text>
-                <Text style={tw`text-sky-400 text-[10px]`}>({m.username})</Text>
+                <Text style={tw`text-sky-400 text-[10px] mr-1.5`}>({m.username})</Text>
+                {m.id !== currentUser.id && (
+                  <TouchableOpacity onPress={() => handleRemoveMember(m.id)} style={tw`p-0.5 rounded-full bg-sky-100`}>
+                    <X size={10} color="#0284c7" />
+                  </TouchableOpacity>
+                )}
               </View>
             ))}
           </View>
@@ -910,14 +988,12 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                     </View>
                   </View>
                   <View style={tw`flex-row items-center gap-2`}>
-                    {items.length > 1 && (
-                      <TouchableOpacity
-                        onPress={() => handleRemoveItem(item.id)}
-                        style={tw`p-1 mr-1`}
-                      >
-                        <Trash2 size={16} color="#ef4444" />
-                      </TouchableOpacity>
-                    )}
+                    <TouchableOpacity
+                      onPress={() => handleRemoveItem(item.id)}
+                      style={tw`p-1 mr-1`}
+                    >
+                      <Trash2 size={16} color="#ef4444" />
+                    </TouchableOpacity>
                     <ChevronDown size={18} color="#94a3b8" />
                   </View>
                 </TouchableOpacity>
@@ -937,11 +1013,9 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                     <Text style={tw`text-slate-800 font-bold text-sm`}>Đang chỉnh sửa mục</Text>
                   </View>
                   <View style={tw`flex-row items-center gap-3`}>
-                    {items.length > 1 && (
-                      <TouchableOpacity onPress={() => handleRemoveItem(item.id)}>
-                        <Trash2 size={16} color="#ef4444" />
-                      </TouchableOpacity>
-                    )}
+                    <TouchableOpacity onPress={() => handleRemoveItem(item.id)}>
+                      <Trash2 size={16} color="#ef4444" />
+                    </TouchableOpacity>
                     <ChevronUp size={18} color="#0ea5e9" />
                   </View>
                 </TouchableOpacity>
@@ -1072,7 +1146,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
 
         {/* Custom Crop Image Modal */}
         <Modal visible={showCropModal} animationType="slide" transparent={false} onRequestClose={() => setShowCropModal(false)}>
-          <SafeAreaView style={tw`flex-1 bg-slate-950`}>
+          <View style={[tw`flex-1 bg-slate-950`, { paddingTop: insets.top }]}>
             {/* Header */}
             <LinearGradient
               colors={["#0f172a", "#1e293b"]}
@@ -1080,11 +1154,15 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
               end={{ x: 1, y: 0 }}
               style={tw`flex-row items-center justify-between px-4 py-4 border-b border-slate-800`}
             >
-              <TouchableOpacity onPress={() => setShowCropModal(false)} style={tw`p-2 bg-white/10 rounded-full`}>
-                <ChevronLeft size={20} color="white" />
+              <TouchableOpacity
+                onPress={() => setShowCropModal(false)}
+                style={tw`p-2.5 bg-white/10 rounded-full`}
+                hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+              >
+                <ChevronLeft size={22} color="white" />
               </TouchableOpacity>
               <Text style={tw`text-base font-black text-white`}>Cắt ảnh hóa đơn ✂️</Text>
-              <View style={tw`w-9`} />
+              <View style={tw`w-10.5`} />
             </LinearGradient>
 
             <View style={tw`flex-1 items-center justify-between py-6 px-4 pb-10`}>
@@ -1212,7 +1290,7 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
                 Xác nhận cắt & Phân tích OCR
               </Button>
             </View>
-          </SafeAreaView>
+          </View>
         </Modal>
       </Portal>
     </SafeAreaView>
