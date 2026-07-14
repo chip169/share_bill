@@ -288,20 +288,21 @@ const ProfileScreen = ({ onNavigate, currentUser, onLogout }) => {
         <Dialog visible={showBankModal} onDismiss={() => setShowBankModal(false)} style={tw`bg-white rounded-3xl`}>
           <Dialog.Title style={tw`font-bold text-slate-800`}>Tài khoản ngân hàng</Dialog.Title>
           <Dialog.Content style={tw`gap-4`}>
-            <TouchableOpacity onPress={() => setShowBankPicker(true)}>
-              <View pointerEvents="none">
-                <TextInput
-                  label="Ngân hàng"
-                  value={editBankName}
-                  placeholder="Bấm để chọn ngân hàng"
-                  mode="outlined"
-                  outlineColor="#e2e8f0"
-                  activeOutlineColor="#0ea5e9"
-                  style={tw`bg-white text-slate-700`}
-                  editable={false}
-                />
-              </View>
-            </TouchableOpacity>
+            <View style={tw`relative mb-4`}>
+              <TextInput
+                label="Ngân hàng"
+                value={editBankName}
+                placeholder="Bấm để chọn ngân hàng"
+                mode="outlined"
+                outlineColor="#e2e8f0"
+                activeOutlineColor="#0ea5e9"
+                style={tw`bg-white text-slate-700`}
+              />
+              <TouchableOpacity
+                onPress={() => setShowBankPicker(true)}
+                style={[tw`absolute inset-0`, { zIndex: 10 }]}
+              />
+            </View>
             <TextInput
               label="Số tài khoản"
               value={editBankAccount}
