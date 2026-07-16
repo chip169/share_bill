@@ -393,6 +393,14 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
 
   // Update item field
   const handleUpdateItem = (id, field, value) => {
+    if (field === "quantity" && !/^[0-9]*[.,]?[0-9]*$/.test(value)) {
+      Alert.alert("Thông báo", "Số lượng chỉ được phép nhập số!");
+      return;
+    }
+    if (field === "price" && !/^[0-9]*$/.test(value)) {
+      Alert.alert("Thông báo", "Đơn giá chỉ được phép nhập số!");
+      return;
+    }
     setItems(
       items.map((item) => {
         if (item.id === id) {
@@ -701,6 +709,18 @@ export default function CreateBillScreen({ onNavigate, currentUser, routeParams 
     const invalidItem = items.find((item) => !item.name.trim() || !item.price || parseFloat(item.price) <= 0);
     if (invalidItem) {
       Alert.alert("Thông tin không hợp lệ", "Tất cả các món / dịch vụ phải có tên và giá tiền hợp lệ!");
+      return;
+    }
+
+    const invalidPriceFormat = items.find((item) => !/^[0-9]+$/.test(item.price));
+    if (invalidPriceFormat) {
+      Alert.alert("Thông tin không hợp lệ", `Đơn giá của món "${invalidPriceFormat.name || 'chưa đặt tên'}" phải là số hợp lệ!`);
+      return;
+    }
+
+    const invalidQtyFormat = items.find((item) => !/^[0-9]+([.,][0-9]+)?$/.test(item.quantity));
+    if (invalidQtyFormat) {
+      Alert.alert("Thông tin không hợp lệ", `Số lượng của món "${invalidQtyFormat.name || 'chưa đặt tên'}" phải là số hợp lệ!`);
       return;
     }
 
